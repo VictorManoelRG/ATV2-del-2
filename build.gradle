@@ -24,6 +24,7 @@ jar {
     	//configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) }
         configurations.runtimeClasspath.findAll { it.name.endsWith('jar') }.collect { zipTree(it) }
     }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA' 
     manifest {
       attributes(
         'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
