@@ -54,6 +54,8 @@ public class SoarBridge
     public Creature c;
     public String input_link_string = "";
     public String output_link_string = "";
+    
+    private List<Thing> knownFoods = new ArrayList<>();
 
     /**
      * Constructor class
@@ -152,7 +154,7 @@ public class SoarBridge
               // Set Creature Parameters
               Calendar lCDateTime = Calendar.getInstance();
               creatureParameters = CreateIdWME(creature, "PARAMETERS");
-              CreateFloatWME(creatureParameters, "MINFUEL", 400);
+              CreateFloatWME(creatureParameters, "MINFUEL", 800);
               CreateFloatWME(creatureParameters, "TIMESTAMP", lCDateTime.getTimeInMillis());
               // Setting creature Position
               creaturePosition = CreateIdWME(creature, "POSITION");
@@ -178,6 +180,8 @@ public class SoarBridge
                  CreateStringWME(entity, "NAME", t.getName());
                  CreateStringWME(entity, "COLOR",Constants.getColorName(t.getMaterial().getColor()));                                                    
                 }
+              
+              addNewFood(thingsList);
             }
         }
         catch (Exception e)
@@ -186,6 +190,23 @@ public class SoarBridge
             e.printStackTrace();
         }
     }
+    
+    private void addNewFood(List<Thing> thingsList) {
+        for (Thing t : thingsList) {
+            if (t.getCategory() == Constants.categoryFOOD && !knownFoods.contains(t)) {
+                knownFoods.add(t);
+            }
+        }
+
+        for (Thing t : knownFoods) {
+            Identifier entity = CreateIdWME(creatureMemory, "ENTITY");
+            CreateFloatWME(entity, "X", t.getX1());
+            CreateFloatWME(entity, "Y", t.getY1());
+            CreateStringWME(entity, "TYPE", "FOOD"); 
+            CreateStringWME(entity, "NAME", t.getName());
+        }
+    }
+
 
     private double GetGeometricDistanceToCreature(double x1, double y1, double x2, double y2, double xCreature, double yCreature)
     {
@@ -271,6 +292,9 @@ public class SoarBridge
                     String name  = com.getAttribute().asString().getValue();
                     Command.CommandType commandType = Enum.valueOf(Command.CommandType.class, name);
                     Command command = null;
+                    
+                    System.out.println(name);
+                    
 
                     switch(commandType)
                     {
@@ -597,5 +621,5 @@ public class SoarBridge
     
     public Set<Wme> getWorkingMemory() {
         return(agent.getAllWmesInRete());
-    }
+    }    
 }
