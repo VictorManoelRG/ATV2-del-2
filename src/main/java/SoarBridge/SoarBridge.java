@@ -8,9 +8,11 @@ package SoarBridge;
 import Simulation.Environment;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import org.jsoar.kernel.Agent;
@@ -28,6 +30,7 @@ import org.jsoar.util.commands.SoarCommands;
 import ws3dproxy.CommandExecException;
 import ws3dproxy.CommandUtility;
 import ws3dproxy.model.Creature;
+import ws3dproxy.model.Leaflet;
 import ws3dproxy.model.Thing;
 import ws3dproxy.util.Constants;
 
@@ -58,6 +61,9 @@ public class SoarBridge
     
     private List<Thing> knownFoods = new ArrayList<>();
     private Set<String> ateFoodName = new HashSet<>();
+    
+    private List<Thing> knownJewels = new ArrayList<>();
+    private Set<String> gotJewels = new HashSet<>();
 
     /**
      * Constructor class
@@ -69,6 +75,7 @@ public class SoarBridge
     {
         env = _e;
         c = env.getCreature();
+        
         try
         {
             ThreadedAgent tag = ThreadedAgent.create();
@@ -91,7 +98,7 @@ public class SoarBridge
             e.printStackTrace();
         }
     }
-
+        
     private Identifier CreateIdWME(Identifier id, String s) {
         SymbolFactory sf = agent.getSymbols();
         Identifier newID = sf.createIdentifier('I');
@@ -172,6 +179,9 @@ public class SoarBridge
               List<Thing> thingsList = (List<Thing>) c.getThingsInVision();
               for (Thing t : thingsList) 
                 {
+//                 if(ateFoodName.contains(t.getName()) || gotJewels.contains(t.getName())){
+//                     continue;
+//                 }
                  Identifier entity = CreateIdWME(visual, "ENTITY");
                  CreateFloatWME(entity, "DISTANCE", GetGeometricDistanceToCreature(t.getX1(),t.getY1(),t.getX2(),t.getY2(),c.getPosition().getX(),c.getPosition().getY()));                                                    
                  CreateFloatWME(entity, "X", t.getX1());
@@ -183,7 +193,10 @@ public class SoarBridge
                  CreateStringWME(entity, "COLOR",Constants.getColorName(t.getMaterial().getColor()));                                                    
                 }
               
-              updateFoodAndJewelsList(thingsList);
+              updateFoodList(thingsList);
+              updateJewelList(thingsList);
+              
+              CreateFloatWME(creatureMemory, "COUNT", knownFoods.size() + knownJewels.size());
             }
         }
         catch (Exception e)
@@ -193,15 +206,58 @@ public class SoarBridge
         }
     }
     
-    private void updateFoodAndJewelsList(List<Thing> thingsList) {
+    private void updateJewelList(List<Thing> thingsList) {
         for (Thing t : thingsList) {
-            if(t.getCategory() != Constants.categoryPFOOD && t.getCategory() != Constants.categoryNPFOOD && !ateFoodName.contains(t.getName()) ){
+            if (getItemType(t.getCategory()) != "JEWEL" || gotJewels.contains(t.getName())) {
                 continue;
             }
-            
+
+            Set<String> neededJewelColors = new HashSet<>();
+            for (Leaflet l : c.getLeaflets()) {
+                if (l.isCompleted()) {
+                    continue;
+                }
+
+                Map<String, Integer> map = (Map<String, Integer>) l.getWhatToCollect();
+                for (var jewelColor : map.keySet()) {
+                    neededJewelColors.add(jewelColor);
+                }
+            }
+
+            boolean found = false;
+            for (Thing known : knownJewels) {
+                if (known.getName().equals(t.getName())) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found && neededJewelColors.contains(t.getAttributes().getColor())) {
+                knownJewels.add(t);
+            }
+        }
+
+        for (Thing t : knownJewels) {
+            Identifier entity = CreateIdWME(creatureMemory, "ENTITY");
+            CreateFloatWME(entity, "X", t.getX1());
+            CreateFloatWME(entity, "Y", t.getY1());
+            CreateStringWME(entity, "TYPE", "JEWEL");
+            CreateStringWME(entity, "NAME", t.getName());
+            CreateStringWME(entity, "COLOR", t.getAttributes().getColor());
+        }
+    }
+
+    private void updateFoodList(List<Thing> thingsList) {
+
+        // Verifica comidas visíveis
+        for (Thing t : thingsList) {
+            if (getItemType(t.getCategory()) != "FOOD" || ateFoodName.contains(t.getName())) {
+
+                continue;
+            }
+
             boolean found = false;
             for (Thing known : knownFoods) {
-                if (known.getName().equals(t.getName())) { // ou getId()
+                if (known.getName().equals(t.getName())) {
                     found = true;
                     break;
                 }
@@ -217,12 +273,10 @@ public class SoarBridge
             CreateFloatWME(entity, "Y", t.getY1());
             CreateStringWME(entity, "TYPE", "FOOD");
             CreateStringWME(entity, "NAME", t.getName());
-            
         }
-        
-        CreateFloatWME(creatureMemory, "COUNT", knownFoods.size());
-    }
 
+        System.out.println("Foods: " + knownFoods);
+    }
 
     private double GetGeometricDistanceToCreature(double x1, double y1, double x2, double y2, double xCreature, double yCreature)
     {
@@ -494,6 +548,11 @@ public class SoarBridge
         if (soarCommandGet != null)
         {
             c.putInSack(soarCommandGet.getThingName());
+            knownJewels.removeIf(thing -> thing.getName().equals(soarCommandGet.getThingName()));
+            gotJewels.add(soarCommandGet.getThingName());
+            
+            
+            
         }
         else
         {
@@ -510,12 +569,10 @@ public class SoarBridge
         if (soarCommandEat != null)
         {
             c.eatIt(soarCommandEat.getThingName());
-            System.out.println("Lista antes:");
-            System.out.println(knownFoods);
+           
             knownFoods.removeIf(thing -> thing.getName().equals(soarCommandEat.getThingName()));
-            System.out.println("Lista depois:");
-            System.out.println(knownFoods);
-
+            ateFoodName.add(soarCommandEat.getThingName());
+            
         }
         else
         {

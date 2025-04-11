@@ -1,8 +1,8 @@
 ################################  CONFIGURATION ################################
-#watch 5
-#learn --off
-#epmem --set learning off 
-#smem --off
+watch 5
+learn --off
+epmem --set learning off 
+smem --off
 #log --level error
 
 watch --proposal
@@ -718,4 +718,12 @@ sp {halt*condition
   #(write I2)
   #(halt)
   (interrupt)
-}       
+}    
+
+sp {debug*state*nochange
+   (state <s> ^impasse no-change)
+-->
+   (write (crlf) |No-change impasse detected| (crlf))
+   (write |Current operators:| (crlf))
+   (write |--| (crlf))
+}   
