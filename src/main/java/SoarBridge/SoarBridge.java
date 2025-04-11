@@ -8,6 +8,7 @@ package SoarBridge;
 import Simulation.Environment;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -56,6 +57,7 @@ public class SoarBridge
     public String output_link_string = "";
     
     private List<Thing> knownFoods = new ArrayList<>();
+    private Set<String> ateFoodName = new HashSet<>();
 
     /**
      * Constructor class
@@ -151,10 +153,10 @@ public class SoarBridge
               creature = CreateIdWME(inputLink, "CREATURE");
               // Initialize Creature Memory
               creatureMemory = CreateIdWME(creature, "MEMORY");
-              // Set Creature Parameters
+              
               Calendar lCDateTime = Calendar.getInstance();
               creatureParameters = CreateIdWME(creature, "PARAMETERS");
-              CreateFloatWME(creatureParameters, "MINFUEL", 800);
+              CreateFloatWME(creatureParameters, "MINFUEL", 950);
               CreateFloatWME(creatureParameters, "TIMESTAMP", lCDateTime.getTimeInMillis());
               // Setting creature Position
               creaturePosition = CreateIdWME(creature, "POSITION");
@@ -181,7 +183,7 @@ public class SoarBridge
                  CreateStringWME(entity, "COLOR",Constants.getColorName(t.getMaterial().getColor()));                                                    
                 }
               
-              addNewFood(thingsList);
+              updateFoodAndJewelsList(thingsList);
             }
         }
         catch (Exception e)
@@ -191,9 +193,20 @@ public class SoarBridge
         }
     }
     
-    private void addNewFood(List<Thing> thingsList) {
+    private void updateFoodAndJewelsList(List<Thing> thingsList) {
         for (Thing t : thingsList) {
-            if (t.getCategory() == Constants.categoryFOOD && !knownFoods.contains(t)) {
+            if(t.getCategory() != Constants.categoryPFOOD && t.getCategory() != Constants.categoryNPFOOD && !ateFoodName.contains(t.getName()) ){
+                continue;
+            }
+            
+            boolean found = false;
+            for (Thing known : knownFoods) {
+                if (known.getName().equals(t.getName())) { // ou getId()
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
                 knownFoods.add(t);
             }
         }
@@ -202,9 +215,12 @@ public class SoarBridge
             Identifier entity = CreateIdWME(creatureMemory, "ENTITY");
             CreateFloatWME(entity, "X", t.getX1());
             CreateFloatWME(entity, "Y", t.getY1());
-            CreateStringWME(entity, "TYPE", "FOOD"); 
+            CreateStringWME(entity, "TYPE", "FOOD");
             CreateStringWME(entity, "NAME", t.getName());
+            
         }
+        
+        CreateFloatWME(creatureMemory, "COUNT", knownFoods.size());
     }
 
 
@@ -494,6 +510,12 @@ public class SoarBridge
         if (soarCommandEat != null)
         {
             c.eatIt(soarCommandEat.getThingName());
+            System.out.println("Lista antes:");
+            System.out.println(knownFoods);
+            knownFoods.removeIf(thing -> thing.getName().equals(soarCommandEat.getThingName()));
+            System.out.println("Lista depois:");
+            System.out.println(knownFoods);
+
         }
         else
         {

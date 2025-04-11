@@ -1,9 +1,11 @@
 ################################  CONFIGURATION ################################
-watch 5
-learn --off
-epmem --set learning off 
+#watch 5
+#learn --off
+#epmem --set learning off 
 #smem --off
 #log --level error
+
+watch --proposal
 
 ###################################  WANDER  ###################################
 # This operator will make the agent to walk ahead at the enviroment
@@ -194,6 +196,7 @@ sp {apply*move*food
    (<memory> ^ENTITY <entityInMemory>)
    (<entityInMemory> ^NAME <entityInMemoryName>)
 -->
+   (write | Movendo para a comida em | <x> | | <y> | !|)
    (<ol> ^MOVE <command>)
    (<command> ^Vel 1)
    (<command> ^VelR 1)
@@ -271,6 +274,7 @@ sp {apply*eat*food
    (<memoryEntity> ^NAME <memoryEntityName> <foodName>)
    - (<ol> ^EAT <something>)
 -->
+   (write | Applyeat cchamado !|)
    (<ol> ^EAT <command>)
    (<command> ^Name <foodName>)
    (<memory> ^COUNT <quantity> -
@@ -337,6 +341,7 @@ sp {apply*move*jewel
    (<memory> ^ENTITY <entityInMemory>)
    (<entityInMemory> ^NAME <entityInMemoryName>)
 -->
+   (write | Movendo para jóia em | <x> | | <y>| !|)
    (<ol> ^MOVE <command>)
    (<command> ^Vel 1)
    (<command> ^VelR 1)
