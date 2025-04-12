@@ -69,6 +69,8 @@ public class SoarBridge
     private Set<String> gotJewels = new HashSet<>();
     
     private boolean seenDeliverySpot = false;
+    
+    private Set<Long> deliveredLeaflets = new HashSet<>();
 
     /**
      * Constructor class
@@ -206,15 +208,11 @@ public class SoarBridge
                     }
                 }
 
-                boolean leafletCompleted = false;
-                for (Leaflet l : c.getLeaflets()) {
-                    if (l.isCompleted()) {
-                        leafletCompleted = true;
-                        System.out.println("passouy");
-                        break;
-                    }
+                
+                boolean leafletCompleted = checkLeafletCompleted();
+                if(leafletCompleted){
+                    System.out.println("a");
                 }
-
                 CreateStringWME(creatureLeaflets, "COMPLETED", leafletCompleted ? "YES" : "NO"); // Note "true" em minúsculas
                 CreateStringWME(creatureLeaflets, "SEENDELIVERYSPOT", seenDeliverySpot ? "YES" : "NO"); // Note "true" em minúsculas
 
@@ -230,6 +228,41 @@ public class SoarBridge
             logger.severe("Error while Preparing Input Link");
             e.printStackTrace();
         }
+    }
+    
+    private boolean checkLeafletCompleted() {
+        boolean leafletCompleted = false;
+        for (Leaflet l : c.getLeaflets()) {
+            // Verifica primeiro o flag isCompleted (opcional, dependendo da sua lógica)
+            if (l.isCompleted() && !deliveredLeaflets.contains(l.getID())) {
+                leafletCompleted = true;
+                System.out.println("Leaflet marcado como completo");
+                break;
+            }
+
+            // Verifica manualmente todos os itens do mapa
+            boolean allItemsCompleted = true;
+            Map<String, Integer[]> items = l.getItems();
+
+            for (Map.Entry<String, Integer[]> entry : items.entrySet()) {
+                Integer[] quantities = entry.getValue();
+                int required = quantities[0];  // Quantidade requerida
+                int collected = quantities[1]; // Quantidade coletada
+
+                if (collected < required) {
+                    allItemsCompleted = false;
+                    break;  // Já sabemos que não está completo, pode parar de verificar
+                }
+            }
+
+            if (allItemsCompleted && !items.isEmpty() && !deliveredLeaflets.contains(l.getID())) {
+                leafletCompleted = true;
+                System.out.println("Todos os itens do leaflet foram coletados");
+                break;
+            }
+        }
+
+        return leafletCompleted;
     }
     
     private void updateJewelList(List<Thing> thingsList) {
@@ -441,7 +474,16 @@ public class SoarBridge
                                 commandList.add(command);
                             }
                             break;
-
+                            
+                        case DELIVER:
+                            
+                            command = new Command(Command.CommandType.DELIVER);
+                            CommandDeliver commandDeliver = (CommandDeliver)command.getCommandArgument();
+                            if (commandDeliver != null)
+                            {
+                                commandList.add(command);
+                            }
+                            break;
                         default:
                             break;
                     }   
@@ -528,6 +570,8 @@ public class SoarBridge
                     case EAT:
                         processEatCommand((CommandEat)command.getCommandArgument());
                     break;
+                    case DELIVER:
+                        processDeliverCommand((CommandDeliver)command.getCommandArgument());
 
                     default:System.out.println("Nenhum comando definido ...");
                         // Do nothing
@@ -565,39 +609,52 @@ public class SoarBridge
      * Send Get Command to World Server
      * @param soarCommandGet Soar Get Command Structure
      */
-    private void processGetCommand(CommandGet soarCommandGet) throws CommandExecException
-    {
-        if (soarCommandGet != null)
-        {
-            c=env.getCreature().updateState();
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(SoarBridge.class.getName()).log(Level.SEVERE, null, ex);
-            }
+    private void processGetCommand(CommandGet soarCommandGet) throws CommandExecException {
+        if (soarCommandGet != null) {
+            c = env.getCreature().updateState();
+
             c.updateBag();
             c.putInSack(soarCommandGet.getThingName());
-            
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(SoarBridge.class.getName()).log(Level.SEVERE, null, ex);
-            }
-            c=env.getCreature().updateState();
-            for(Leaflet l : c.getLeaflets()){
-                c.updateLeaflet(l.getID(), l.getItems(), l.getSituation());
-            }
+
             c.updateBag();
-            
+
             c = c.updateState();
             knownJewels.removeIf(thing -> thing.getName().equals(soarCommandGet.getThingName()));
             gotJewels.add(soarCommandGet.getThingName());
+
+            String color = null;
+            for (Thing jewel : knownJewels) {
+                if (jewel.getName().equals(soarCommandGet.getThingName())) {
+                    color = jewel.getAttributes().getColor();
+                    break;
+                }
+            }
+
+            if (color == null) {
+                return;
+            }
             
-            
-            
-        }
-        else
-        {
+            var leaflets = c.getLeaflets();
+            if (leaflets != null) {
+                for (var leaflet : leaflets) {
+                    var itemsMap = leaflet.getItems();
+
+                    if (itemsMap.containsKey(color)) {
+                        Integer[] counts = itemsMap.get(color);
+
+                        if (counts[0] == counts[1]) {
+                            continue;
+                        }
+
+                        counts[1] += 1;
+                        itemsMap.put(color, counts);
+
+                        leaflet.setItems(itemsMap);
+                        c.updateLeaflet(leaflet.getID(), leaflet.getItems(), leaflet.getSituation());
+                    }
+                }
+            }
+        } else {
             logger.severe("Error processing processMoveCommand");
         }
     }
@@ -618,6 +675,48 @@ public class SoarBridge
         }
         else
         {
+            logger.severe("Error processing processMoveCommand");
+        }
+    }
+    
+      
+
+    private void processDeliverCommand(CommandDeliver commandDeliver) {
+        if (commandDeliver != null) {
+            for (Leaflet l : c.getLeaflets()) {
+                boolean isCompleted = l.isCompleted();
+
+                // Verificação adicional pelo mapa de itens
+                boolean allItemsCompleted = true;
+                Map<String, Integer[]> items = l.getItems();
+
+                for (Map.Entry<String, Integer[]> entry : items.entrySet()) {
+                    Integer[] quantities = entry.getValue();
+                    int required = quantities[0];  
+                    int collected = quantities[1]; 
+
+                    if (collected < required) {
+                        allItemsCompleted = false;
+                        break;
+                    }
+                }
+
+                // Se estiver marcado como completo OU se todos os itens foram coletados
+                if (isCompleted || (allItemsCompleted && !items.isEmpty())) {
+                    try {
+                        c.deliverLeaflet(String.valueOf(l.getID()));
+                        // Atualiza o status do leaflet se completado pelo mapa
+                        if (!isCompleted && allItemsCompleted) {
+                            l.setSituation(1);
+                            c.updateLeaflet(l.getID(), l.getItems(), 1); // 1 = situação completada
+                            deliveredLeaflets.add(l.getID());
+                        }
+                    } catch (CommandExecException ex) {
+                        Logger.getLogger(SoarBridge.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }
+        } else {
             logger.severe("Error processing processMoveCommand");
         }
     }
@@ -742,5 +841,5 @@ public class SoarBridge
     
     public Set<Wme> getWorkingMemory() {
         return(agent.getAllWmesInRete());
-    }    
+    }  
 }

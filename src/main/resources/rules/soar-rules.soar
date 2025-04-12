@@ -199,6 +199,44 @@ sp {apply*moveDeliverySpot*remove-move
    (<out> ^MOVE <move> -)
 }
 
+###############################  DELIVER LEAFLET  #####################################
+
+sp {propose*deliver*leaflet
+   (state <s> ^io.input-link <il>)
+   (<il> ^CREATURE <creature>)
+   (<creature> ^SENSOR.VISUAL.ENTITY <entity>) 
+   (<creature> ^LEAFLETS <leaflets>)
+   (<leaflets> ^COMPLETED YES) 
+   (<entity> ^TYPE DELIVERYSPOT)
+   (<entity> ^DISTANCE <distance> < 60)
+-->
+   (write | Propose deliver cchamado !|)
+   (<s> ^operator <o> +)
+   (<o> ^name deliverLeaflet)}
+
+sp {apply*deliver*leaflet
+   (state <s> ^operator <o>
+              ^io <io>)
+   (<io> ^input-link <il>) 
+   (<il> ^CREATURE <creature>)
+   (<creature> ^LEAFLETS <leaflets>)
+   (<leaflets> ^COMPLETED YES)    
+   (<io> ^output-link <ol>)
+   (<o> ^name deliverLeaflet)
+   - (<ol> ^DELIVER <something>)
+-->
+   (write | Apply deliver cchamado !|)
+   (<ol> ^DELIVER <command>)}
+
+sp {apply*deliver*remove-leaflet
+   (state <s> ^operator <o>            
+           ^io.output-link <out>)
+   (<o> ^name deliverLeaflet)
+   (<out> ^DELIVER <deliver>)
+   (<deliver> ^status complete)
+-->
+   (<out> ^DELIVER <deliver> -)}
+
 ##############################  MOVE FOOD  #####################################
 # This operator will make the agent go straight to the food
 
@@ -723,6 +761,18 @@ sp {moveDeliverySpot*preferences*moveDeliverySpotWins
 -->
 (<ss> ^operator <o> > <o2>)
 }
+
+sp {deliverLeaflet*preferences*deliverLeafletWins
+   (state <s> ^attribute operator
+           ^impasse tie
+           ^item <o> {<> <o> <o2>}
+           ^superstate <ss>)
+    (<ss> ^io.input-link <il>)
+    (<il> ^CREATURE <creature>)
+    (<o> ^name deliverLeaflet)
+    (<o2> ^name << moveDeliverySpot moveFood moveJewel >>)
+-->
+    (<ss> ^operator <o> > <o2>)}
 
 
 #BRICK  
