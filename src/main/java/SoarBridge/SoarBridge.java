@@ -2,7 +2,6 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package SoarBridge;
 
 import Simulation.Environment;
@@ -40,8 +39,8 @@ import ws3dproxy.util.Constants;
  *
  * @author Danilo Lucentini and Ricardo Gudwin
  */
-public class SoarBridge
-{
+public class SoarBridge {
+
     // Log Variable
     Logger logger = Logger.getLogger(SoarBridge.class.getName());
 
@@ -56,40 +55,40 @@ public class SoarBridge
     Identifier creaturePosition;
     Identifier creatureMemory;
     Identifier creatureLeaflets;
-    
+
     Environment env;
     public Creature c;
     public String input_link_string = "";
     public String output_link_string = "";
-    
+
     private List<Thing> knownFoods = new ArrayList<>();
     private Set<String> ateFoodName = new HashSet<>();
-    
+
     private List<Thing> knownJewels = new ArrayList<>();
     private Set<String> gotJewels = new HashSet<>();
-    
+
     private boolean seenDeliverySpot = false;
-    
+
     private Set<Long> deliveredLeaflets = new HashSet<>();
 
     /**
      * Constructor class
+     *
      * @param _e Environment
      * @param path Path for Rule Base
-     * @param startSOARDebugger set true if you wish the SOAR Debugger to be started
+     * @param startSOARDebugger set true if you wish the SOAR Debugger to be
+     * started
      */
-    public SoarBridge(Environment _e, String path, Boolean startSOARDebugger) 
-    {
+    public SoarBridge(Environment _e, String path, Boolean startSOARDebugger) {
         env = _e;
         c = env.getCreature();
         World word = World.getInstance();
-        try {        
+        try {
             CommandUtility.sendNewDeliverySpot(4, 200, 200);
         } catch (CommandExecException ex) {
             Logger.getLogger(SoarBridge.class.getName()).log(Level.SEVERE, null, ex);
         }
-        try
-        {
+        try {
             ThreadedAgent tag = ThreadedAgent.create();
             agent = tag.getAgent();
             SoarCommands.source(agent.getInterpreter(), path);
@@ -99,43 +98,38 @@ public class SoarBridge
             creature = null;
 
             // Debugger line
-            if (startSOARDebugger)
-            {
+            if (startSOARDebugger) {
                 agent.openDebugger();
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             logger.severe("Error while creating SOAR Kernel");
             e.printStackTrace();
         }
     }
-        
+
     private Identifier CreateIdWME(Identifier id, String s) {
         SymbolFactory sf = agent.getSymbols();
         Identifier newID = sf.createIdentifier('I');
         agent.getInputOutput().addInputWme(id, sf.createString(s), newID);
-        return(newID);
+        return (newID);
     }
-    
+
     private void CreateFloatWME(Identifier id, String s, double value) {
         SymbolFactory sf = agent.getSymbols();
         DoubleSymbol newID = sf.createDouble(value);
         agent.getInputOutput().addInputWme(id, sf.createString(s), newID);
     }
-    
+
     private void CreateStringWME(Identifier id, String s, String value) {
         SymbolFactory sf = agent.getSymbols();
         StringSymbol newID = sf.createString(value);
         agent.getInputOutput().addInputWme(id, sf.createString(s), newID);
     }
-    
-    private String getItemType(int categoryType)
-    {
+
+    private String getItemType(int categoryType) {
         String itemType = null;
 
-        switch (categoryType)
-        {
+        switch (categoryType) {
             case Constants.categoryBRICK:
                 itemType = "BRICK";
                 break;
@@ -156,8 +150,7 @@ public class SoarBridge
         }
         return itemType;
     }
-    
-    
+
     /**
      * Create the WMEs at the InputLink of SOAR
      */
@@ -208,9 +201,8 @@ public class SoarBridge
                     }
                 }
 
-                
                 boolean leafletCompleted = checkLeafletCompleted();
-                if(leafletCompleted){
+                if (leafletCompleted) {
                     System.out.println("a");
                 }
                 CreateStringWME(creatureLeaflets, "COMPLETED", leafletCompleted ? "YES" : "NO"); // Note "true" em minúsculas
@@ -229,42 +221,43 @@ public class SoarBridge
             e.printStackTrace();
         }
     }
-    
+
     private boolean checkLeafletCompleted() {
-        boolean leafletCompleted = false;
+        boolean completed = false;
+
         for (Leaflet l : c.getLeaflets()) {
-            // Verifica primeiro o flag isCompleted (opcional, dependendo da sua lógica)
-            if (l.isCompleted() && !deliveredLeaflets.contains(l.getID())) {
-                leafletCompleted = true;
-                System.out.println("Leaflet marcado como completo");
-                break;
+            if (deliveredLeaflets.contains(l.getID())) {
+                continue; // Pula leaflets já entregues
             }
 
-            // Verifica manualmente todos os itens do mapa
-            boolean allItemsCompleted = true;
             Map<String, Integer[]> items = l.getItems();
+            if (items == null || items.isEmpty()) {
+                continue;
+            }
 
+            boolean allItemsCollected = true;
             for (Map.Entry<String, Integer[]> entry : items.entrySet()) {
                 Integer[] quantities = entry.getValue();
-                int required = quantities[0];  // Quantidade requerida
-                int collected = quantities[1]; // Quantidade coletada
+                int required = quantities[0];
+                int collected = quantities[1];
 
                 if (collected < required) {
-                    allItemsCompleted = false;
-                    break;  // Já sabemos que não está completo, pode parar de verificar
+                    allItemsCollected = false;
+                    break;
                 }
             }
 
-            if (allItemsCompleted && !items.isEmpty() && !deliveredLeaflets.contains(l.getID())) {
-                leafletCompleted = true;
-                System.out.println("Todos os itens do leaflet foram coletados");
-                break;
+            if (allItemsCollected) {
+                // Marca como completo e atualiza
+                l.setSituation(1);
+                c.updateLeaflet(l.getID(), l.getItems(), 1);
+                completed = true;
             }
         }
 
-        return leafletCompleted;
+        return completed; // <--- AQUI ESTAVA O ERRO
     }
-    
+
     private void updateJewelList(List<Thing> thingsList) {
         for (Thing t : thingsList) {
             if (getItemType(t.getCategory()) != "JEWEL" || gotJewels.contains(t.getName())) {
@@ -273,7 +266,7 @@ public class SoarBridge
 
             Set<String> neededJewelColors = new HashSet<>();
             for (Leaflet l : c.getLeaflets()) {
-                if (l.isCompleted()) {
+                if (isLeafletComplete(l)) {
                     continue;
                 }
 
@@ -335,94 +328,92 @@ public class SoarBridge
         }
     }
 
-    private double GetGeometricDistanceToCreature(double x1, double y1, double x2, double y2, double xCreature, double yCreature)
-    {
-          float squared_dist = 0.0f;
-          double maxX = Math.max(x1, x2);
-          double minX = Math.min(x1, x2);
-          double maxY = Math.max(y1, y2);
-          double minY = Math.min(y1, y2);
+    private double GetGeometricDistanceToCreature(double x1, double y1, double x2, double y2, double xCreature, double yCreature) {
+        float squared_dist = 0.0f;
+        double maxX = Math.max(x1, x2);
+        double minX = Math.min(x1, x2);
+        double maxY = Math.max(y1, y2);
+        double minY = Math.min(y1, y2);
 
-          if(xCreature > maxX)
-          {
-            squared_dist += (xCreature - maxX)*(xCreature - maxX);
-          }
-          else if(xCreature < minX)
-          {
-            squared_dist += (minX - xCreature)*(minX - xCreature);
-          }
+        if (xCreature > maxX) {
+            squared_dist += (xCreature - maxX) * (xCreature - maxX);
+        } else if (xCreature < minX) {
+            squared_dist += (minX - xCreature) * (minX - xCreature);
+        }
 
-          if(yCreature > maxY)
-          {
-            squared_dist += (yCreature - maxY)*(yCreature - maxY);
-          }
-          else if(yCreature < minY)
-          {
-            squared_dist += (minY - yCreature)*(minY - yCreature);
-          }
+        if (yCreature > maxY) {
+            squared_dist += (yCreature - maxY) * (yCreature - maxY);
+        } else if (yCreature < minY) {
+            squared_dist += (minY - yCreature) * (minY - yCreature);
+        }
 
-          return Math.sqrt(squared_dist);
+        return Math.sqrt(squared_dist);
     }
 
     private void resetSimulation() {
         agent.initialize();
     }
-    
+
     /**
      * Run SOAR until HALT
      */
-    private void runSOAR() 
-    {
-        agent.runForever(); 
+    private void runSOAR() {
+        agent.runForever();
     }
-    
+
     private int stepSOAR() {
         agent.runFor(1, RunType.PHASES);
         Phase ph = agent.getCurrentPhase();
-        if (ph.equals(Phase.INPUT)) return(0);
-        else if (ph.equals(Phase.PROPOSE)) return(1);
-        else if (ph.equals(Phase.DECISION)) return(2);
-        else if (ph.equals(Phase.APPLY)) return(3);
-        else if (ph.equals(Phase.OUTPUT)) {
-            if (agent.getReasonForStop() == null) return(4);
-            else return(5);
+        if (ph.equals(Phase.INPUT)) {
+            return (0);
+        } else if (ph.equals(Phase.PROPOSE)) {
+            return (1);
+        } else if (ph.equals(Phase.DECISION)) {
+            return (2);
+        } else if (ph.equals(Phase.APPLY)) {
+            return (3);
+        } else if (ph.equals(Phase.OUTPUT)) {
+            if (agent.getReasonForStop() == null) {
+                return (4);
+            } else {
+                return (5);
+            }
+        } else {
+            return (6);
         }
-        else return(6);
     }
 
     private String GetParameterValue(String par) {
         List<Wme> Commands = Wmes.matcher(agent).filter(agent.getInputOutput().getOutputLink());
         List<Wme> Parameters = Wmes.matcher(agent).filter(Commands.get(0));
         String parvalue = "";
-        for (Wme w : Parameters) 
-           if (w.getAttribute().toString().equals(par)) parvalue = w.getValue().toString();
-        return(parvalue);
+        for (Wme w : Parameters) {
+            if (w.getAttribute().toString().equals(par)) {
+                parvalue = w.getValue().toString();
+            }
+        }
+        return (parvalue);
     }
-    
-    
+
     /**
-     * Process the OutputLink given by SOAR and return a list of commands to WS3D
+     * Process the OutputLink given by SOAR and return a list of commands to
+     * WS3D
+     *
      * @return A List of SOAR Commands
      */
-    private ArrayList<Command> processOutputLink() 
-    {
+    private ArrayList<Command> processOutputLink() {
         ArrayList<Command> commandList = new ArrayList<Command>();
 
-        try
-        {
-            if (agent != null)
-            {
+        try {
+            if (agent != null) {
                 List<Wme> Commands = Wmes.matcher(agent).filter(agent.getInputOutput().getOutputLink());
 
-                for (Wme com : Commands)
-                {
-                    String name  = com.getAttribute().asString().getValue();
+                for (Wme com : Commands) {
+                    String name = com.getAttribute().asString().getValue();
                     Command.CommandType commandType = Enum.valueOf(Command.CommandType.class, name);
                     Command command = null;
-                                        
 
-                    switch(commandType)
-                    {
+                    switch (commandType) {
                         case MOVE:
                             Float rightVelocity = null;
                             Float leftVelocity = null;
@@ -435,18 +426,25 @@ public class SoarBridge
                             xPosition = tryParseFloat(GetParameterValue("X"));
                             yPosition = tryParseFloat(GetParameterValue("Y"));
                             command = new Command(Command.CommandType.MOVE);
-                            CommandMove commandMove = (CommandMove)command.getCommandArgument();
-                            if (commandMove != null)
-                            {
-                                if (rightVelocity != null) commandMove.setRightVelocity(rightVelocity);
-                                if (leftVelocity != null)  commandMove.setLeftVelocity(leftVelocity);
-                                if (linearVelocity != null) commandMove.setLinearVelocity(linearVelocity);
-                                if (xPosition != null) commandMove.setX(xPosition);
-                                if (yPosition != null) commandMove.setY(yPosition);
+                            CommandMove commandMove = (CommandMove) command.getCommandArgument();
+                            if (commandMove != null) {
+                                if (rightVelocity != null) {
+                                    commandMove.setRightVelocity(rightVelocity);
+                                }
+                                if (leftVelocity != null) {
+                                    commandMove.setLeftVelocity(leftVelocity);
+                                }
+                                if (linearVelocity != null) {
+                                    commandMove.setLinearVelocity(linearVelocity);
+                                }
+                                if (xPosition != null) {
+                                    commandMove.setX(xPosition);
+                                }
+                                if (yPosition != null) {
+                                    commandMove.setY(yPosition);
+                                }
                                 commandList.add(command);
-                            }
-                            else
-                            {
+                            } else {
                                 logger.severe("Error processing MOVE command");
                             }
                             break;
@@ -454,11 +452,12 @@ public class SoarBridge
                         case GET:
                             String thingNameToGet = null;
                             command = new Command(Command.CommandType.GET);
-                            CommandGet commandGet = (CommandGet)command.getCommandArgument();
-                            if (commandGet != null)
-                            {
+                            CommandGet commandGet = (CommandGet) command.getCommandArgument();
+                            if (commandGet != null) {
                                 thingNameToGet = GetParameterValue("Name");
-                                if (thingNameToGet != null) commandGet.setThingName(thingNameToGet);
+                                if (thingNameToGet != null) {
+                                    commandGet.setThingName(thingNameToGet);
+                                }
                                 commandList.add(command);
                             }
                             break;
@@ -466,46 +465,46 @@ public class SoarBridge
                         case EAT:
                             String thingNameToEat = null;
                             command = new Command(Command.CommandType.EAT);
-                            CommandEat commandEat = (CommandEat)command.getCommandArgument();
-                            if (commandEat != null)
-                            {
+                            CommandEat commandEat = (CommandEat) command.getCommandArgument();
+                            if (commandEat != null) {
                                 thingNameToEat = GetParameterValue("Name");
-                                if (thingNameToEat != null) commandEat.setThingName(thingNameToEat);
+                                if (thingNameToEat != null) {
+                                    commandEat.setThingName(thingNameToEat);
+                                }
                                 commandList.add(command);
                             }
                             break;
-                            
+
                         case DELIVER:
-                            
+
                             command = new Command(Command.CommandType.DELIVER);
-                            CommandDeliver commandDeliver = (CommandDeliver)command.getCommandArgument();
-                            if (commandDeliver != null)
-                            {
+                            CommandDeliver commandDeliver = (CommandDeliver) command.getCommandArgument();
+                            if (commandDeliver != null) {
                                 commandList.add(command);
                             }
                             break;
                         default:
                             break;
-                    }   
+                    }
                 }
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             logger.severe("Error while processing commands");
             e.printStackTrace();
         }
 
         return ((commandList.size() > 0) ? commandList : null);
     }
-    
+
     /**
      * Perform a complete SOAR step
+     *
      * @throws ws3dproxy.CommandExecException
      */
-    public void step() throws CommandExecException
-    {
-        if (phase != -1) finish_msteps();
+    public void step() throws CommandExecException {
+        if (phase != -1) {
+            finish_msteps();
+        }
         resetSimulation();
         c.updateState();
         prepareInputLink();
@@ -518,30 +517,33 @@ public class SoarBridge
         processCommands(commandList);
         //resetSimulation();
     }
-    
-    
+
     public void prepare_mstep() {
         resetSimulation();
         c.updateState();
         prepareInputLink();
         input_link_string = stringInputLink();
     }
-    
-    public int phase=-1;
-    public void mstep() throws CommandExecException
-    {
-        if (phase == -1) prepare_mstep();
+
+    public int phase = -1;
+
+    public void mstep() throws CommandExecException {
+        if (phase == -1) {
+            prepare_mstep();
+        }
         phase = stepSOAR();
         if (phase == 5) {
             post_mstep();
             phase = -1;
         }
     }
-    
+
     public void finish_msteps() throws CommandExecException {
-        while (phase != -1) mstep();
+        while (phase != -1) {
+            mstep();
+        }
     }
-    
+
     public void post_mstep() throws CommandExecException {
         output_link_string = stringOutputLink();
         //printOutputWMEs();
@@ -550,80 +552,66 @@ public class SoarBridge
         //resetSimulation();
     }
 
-    private void processCommands(List<Command> commandList) throws CommandExecException
-    {
+    private void processCommands(List<Command> commandList) throws CommandExecException {
 
-        if (commandList != null)
-        {
-            for (Command command:commandList)
-            {
-                switch (command.getCommandType())
-                {
+        if (commandList != null) {
+            for (Command command : commandList) {
+                switch (command.getCommandType()) {
                     case MOVE:
-                        processMoveCommand((CommandMove)command.getCommandArgument());
-                    break;
+                        processMoveCommand((CommandMove) command.getCommandArgument());
+                        break;
 
                     case GET:
-                        processGetCommand((CommandGet)command.getCommandArgument());
-                    break;
+                        processGetCommand((CommandGet) command.getCommandArgument());
+                        break;
 
                     case EAT:
-                        processEatCommand((CommandEat)command.getCommandArgument());
-                    break;
+                        processEatCommand((CommandEat) command.getCommandArgument());
+                        break;
                     case DELIVER:
-                        processDeliverCommand((CommandDeliver)command.getCommandArgument());
+                        processDeliverCommand((CommandDeliver) command.getCommandArgument());
 
-                    default:System.out.println("Nenhum comando definido ...");
+                    default:
+                        System.out.println("Nenhum comando definido ...");
                         // Do nothing
-                    break;
+                        break;
                 }
             }
+        } else {
+            System.out.println("comando nulo ...");
         }
-        else System.out.println("comando nulo ...");
     }
 
     /**
      * Send Move Command to World Server
+     *
      * @param soarCommandMove Soar Move Command Structure
      */
-    private void processMoveCommand(CommandMove soarCommandMove) throws CommandExecException
-    {
-        if (soarCommandMove != null)
-        {
-            if (soarCommandMove.getX() != null && soarCommandMove.getY() != null)
-            {
+    private void processMoveCommand(CommandMove soarCommandMove) throws CommandExecException {
+        if (soarCommandMove != null) {
+            if (soarCommandMove.getX() != null && soarCommandMove.getY() != null) {
                 CommandUtility.sendGoTo("0", soarCommandMove.getRightVelocity(), soarCommandMove.getLeftVelocity(), soarCommandMove.getX(), soarCommandMove.getY());
+            } else {
+                CommandUtility.sendSetTurn("0", soarCommandMove.getLinearVelocity(), soarCommandMove.getRightVelocity(), soarCommandMove.getLeftVelocity());
             }
-            else
-            {
-                CommandUtility.sendSetTurn("0",soarCommandMove.getLinearVelocity(),soarCommandMove.getRightVelocity(),soarCommandMove.getLeftVelocity());
-            }
-        }
-        else
-        {
+        } else {
             logger.severe("Error processing processMoveCommand");
         }
     }
 
     /**
      * Send Get Command to World Server
+     *
      * @param soarCommandGet Soar Get Command Structure
      */
     private void processGetCommand(CommandGet soarCommandGet) throws CommandExecException {
         if (soarCommandGet != null) {
             c = env.getCreature().updateState();
 
-            c.updateBag();
-            c.putInSack(soarCommandGet.getThingName());
-
-            c.updateBag();
-
-            c = c.updateState();
-            knownJewels.removeIf(thing -> thing.getName().equals(soarCommandGet.getThingName()));
-            gotJewels.add(soarCommandGet.getThingName());
+            var leaflets = c.getLeaflets();
 
             String color = null;
-            for (Thing jewel : knownJewels) {
+            for (Thing jewel : c.getThingsInVision()) {
                 if (jewel.getName().equals(soarCommandGet.getThingName())) {
                     color = jewel.getAttributes().getColor();
                     break;
@@ -633,10 +621,12 @@ public class SoarBridge
             if (color == null) {
                 return;
             }
-            
-            var leaflets = c.getLeaflets();
+
             if (leaflets != null) {
                 for (var leaflet : leaflets) {
+                    if (!deliveredLeaflets.contains(leaflet.getID())) {
+                        continue;
+                    }
                     var itemsMap = leaflet.getItems();
 
                     if (itemsMap.containsKey(color)) {
@@ -654,99 +644,109 @@ public class SoarBridge
                     }
                 }
             }
+
+            c.putInSack(soarCommandGet.getThingName());
+            c = c.updateState();
+            knownJewels.removeIf(thing -> thing.getName().equals(soarCommandGet.getThingName()));
+            gotJewels.add(soarCommandGet.getThingName());
+
         } else {
             logger.severe("Error processing processMoveCommand");
         }
     }
 
-     /**
+    /**
      * Send Eat Command to World Server
+     *
      * @param soarCommandEat Soar Eat Command Structure
      */
-    private void processEatCommand(CommandEat soarCommandEat) throws CommandExecException
-    {
-        if (soarCommandEat != null)
-        {
+    private void processEatCommand(CommandEat soarCommandEat) throws CommandExecException {
+        if (soarCommandEat != null) {
             c.eatIt(soarCommandEat.getThingName());
-           
+
             knownFoods.removeIf(thing -> thing.getName().equals(soarCommandEat.getThingName()));
             ateFoodName.add(soarCommandEat.getThingName());
-            
-        }
-        else
-        {
+
+        } else {
             logger.severe("Error processing processMoveCommand");
         }
     }
-    
-      
 
     private void processDeliverCommand(CommandDeliver commandDeliver) {
         if (commandDeliver != null) {
             for (Leaflet l : c.getLeaflets()) {
-                boolean isCompleted = l.isCompleted();
-
-                // Verificação adicional pelo mapa de itens
-                boolean allItemsCompleted = true;
-                Map<String, Integer[]> items = l.getItems();
-
-                for (Map.Entry<String, Integer[]> entry : items.entrySet()) {
-                    Integer[] quantities = entry.getValue();
-                    int required = quantities[0];  
-                    int collected = quantities[1]; 
-
-                    if (collected < required) {
-                        allItemsCompleted = false;
-                        break;
-                    }
-                }
-
-                // Se estiver marcado como completo OU se todos os itens foram coletados
-                if (isCompleted || (allItemsCompleted && !items.isEmpty())) {
+                // Verifica apenas pelo flag isCompleted e se não foi entregue
+                if (isLeafletComplete(l) && !deliveredLeaflets.contains(l.getID())) {
                     try {
                         c.deliverLeaflet(String.valueOf(l.getID()));
-                        // Atualiza o status do leaflet se completado pelo mapa
-                        if (!isCompleted && allItemsCompleted) {
-                            l.setSituation(1);
-                            c.updateLeaflet(l.getID(), l.getItems(), 1); // 1 = situação completada
-                            deliveredLeaflets.add(l.getID());
+                        try {
+                            Thread.sleep(200);
+                        } catch (InterruptedException ex) {
+                            Logger.getLogger(SoarBridge.class.getName()).log(Level.SEVERE, null, ex);
                         }
+                        deliveredLeaflets.add(l.getID());
+                        c = c.updateState();
+                        System.out.println("Leaflet " + l.getID() + " entregue com sucesso");
                     } catch (CommandExecException ex) {
                         Logger.getLogger(SoarBridge.class.getName()).log(Level.SEVERE, null, ex);
                     }
                 }
             }
         } else {
-            logger.severe("Error processing processMoveCommand");
+            logger.severe("Error processing deliver command");
         }
     }
-    
+
+    private boolean isLeafletComplete(Leaflet leaflet) {
+        if (leaflet == null) {
+            return false;
+        }
+
+        Map<String, Integer[]> items = leaflet.getItems();
+        if (items == null || items.isEmpty()) {
+            return false;
+        }
+
+        for (Map.Entry<String, Integer[]> entry : items.entrySet()) {
+            Integer[] quantities = entry.getValue();
+            if (quantities == null || quantities.length < 2) {
+                return false;
+            }
+
+            int required = quantities[0];
+            int collected = quantities[1];
+
+            if (collected < required) {
+                return false;
+            }
+        }
+
+        return true; // Todos os itens estão completos
+    }
+
     /**
      * Try Parse a Float Element
+     *
      * @param value Float Value
      * @return The Float Value or null otherwise
      */
-    private Float tryParseFloat (String value)
-    {
+    private Float tryParseFloat(String value) {
         Float returnValue = null;
 
-        try
-        {
+        try {
             returnValue = Float.parseFloat(value);
-        }
-        catch (Exception ex)
-        {
+        } catch (Exception ex) {
             returnValue = null;
         }
 
         return returnValue;
     }
-    
+
     public void printWME(Identifier id) {
-        printWME(id,0);
-        
+        printWME(id, 0);
+
     }
-    
+
     public void printWME(Identifier id, int level) {
         Iterator<Wme> It = id.getWmes();
         while (It.hasNext()) {
@@ -755,34 +755,37 @@ public class SoarBridge
             Symbol a = wme.getAttribute();
             Symbol v = wme.getValue();
             Identifier testv = v.asIdentifier();
-            for (int i=0;i<level;i++) System.out.print("   ");
-            if (testv != null) {
-                System.out.print("("+idd.toString()+","+a.toString()+","+v.toString()+")\n");
-                printWME(testv,level+1);
+            for (int i = 0; i < level; i++) {
+                System.out.print("   ");
             }
-            else System.out.print("("+idd.toString()+","+a.toString()+","+v.toString()+")\n");
-        }   
+            if (testv != null) {
+                System.out.print("(" + idd.toString() + "," + a.toString() + "," + v.toString() + ")\n");
+                printWME(testv, level + 1);
+            } else {
+                System.out.print("(" + idd.toString() + "," + a.toString() + "," + v.toString() + ")\n");
+            }
+        }
     }
-    
-    public void printInputWMEs(){
+
+    public void printInputWMEs() {
         Identifier il = agent.getInputOutput().getInputLink();
         System.out.println("Input --->");
         printWME(il);
     }
-    
-    public void printOutputWMEs(){
+
+    public void printOutputWMEs() {
         Identifier ol = agent.getInputOutput().getOutputLink();
         System.out.println("Output --->");
         printWME(ol);
     }
-    
+
     public String stringWME(Identifier id) {
-        String out = stringWME(id,0);
-        return(out);
+        String out = stringWME(id, 0);
+        return (out);
     }
-    
+
     public String stringWME(Identifier id, int level) {
-        String out="";
+        String out = "";
         Iterator<Wme> It = id.getWmes();
         while (It.hasNext()) {
             Wme wme = It.next();
@@ -790,38 +793,42 @@ public class SoarBridge
             Symbol a = wme.getAttribute();
             Symbol v = wme.getValue();
             Identifier testv = v.asIdentifier();
-            for (int i=0;i<level;i++) out += "   ";
-            if (testv != null) {
-                out += "("+idd.toString()+","+a.toString()+","+v.toString()+")\n";
-                out += stringWME(testv,level+1);
+            for (int i = 0; i < level; i++) {
+                out += "   ";
             }
-            else out += "("+idd.toString()+","+a.toString()+","+v.toString()+")\n";
+            if (testv != null) {
+                out += "(" + idd.toString() + "," + a.toString() + "," + v.toString() + ")\n";
+                out += stringWME(testv, level + 1);
+            } else {
+                out += "(" + idd.toString() + "," + a.toString() + "," + v.toString() + ")\n";
+            }
         }
-       return(out); 
+        return (out);
     }
-    
+
     public String stringInputLink() {
         Identifier il = agent.getInputOutput().getInputLink();
         String out = stringWME(il);
-        return(out);
+        return (out);
     }
-    
+
     public String stringOutputLink() {
         Identifier ol = agent.getInputOutput().getOutputLink();
         String out = stringWME(ol);
-        return(out);
+        return (out);
     }
-    
+
     public Identifier getInitialState() {
         Set<Wme> allmem = agent.getAllWmesInRete();
         for (Wme w : allmem) {
             Identifier id = w.getIdentifier();
-            if (id.toString().equalsIgnoreCase("S1"))
-                return(id);
+            if (id.toString().equalsIgnoreCase("S1")) {
+                return (id);
+            }
         }
-        return(null);
+        return (null);
     }
-    
+
     public List<Identifier> getStates() {
         List<Identifier> li = new ArrayList<Identifier>();
         Set<Wme> allmem = agent.getAllWmesInRete();
@@ -829,17 +836,20 @@ public class SoarBridge
             Identifier id = w.getIdentifier();
             if (id.isGoal()) {
                 boolean alreadythere = false;
-                for (Identifier icand : li)
-                    if (icand == id) alreadythere = true;
+                for (Identifier icand : li) {
+                    if (icand == id) {
+                        alreadythere = true;
+                    }
+                }
                 if (alreadythere == false) {
                     li.add(id);
                 }
             }
         }
-        return(li);
+        return (li);
     }
-    
+
     public Set<Wme> getWorkingMemory() {
-        return(agent.getAllWmesInRete());
-    }  
+        return (agent.getAllWmesInRete());
+    }
 }
