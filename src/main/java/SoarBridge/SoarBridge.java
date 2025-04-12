@@ -14,6 +14,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jsoar.kernel.Agent;
 import org.jsoar.kernel.Phase;
@@ -32,6 +33,7 @@ import ws3dproxy.CommandUtility;
 import ws3dproxy.model.Creature;
 import ws3dproxy.model.Leaflet;
 import ws3dproxy.model.Thing;
+import ws3dproxy.model.World;
 import ws3dproxy.util.Constants;
 
 /**
@@ -53,6 +55,7 @@ public class SoarBridge
     Identifier creatureParameters;
     Identifier creaturePosition;
     Identifier creatureMemory;
+    Identifier creatureLeaflets;
     
     Environment env;
     public Creature c;
@@ -64,6 +67,8 @@ public class SoarBridge
     
     private List<Thing> knownJewels = new ArrayList<>();
     private Set<String> gotJewels = new HashSet<>();
+    
+    private boolean seenDeliverySpot = false;
 
     /**
      * Constructor class
@@ -75,7 +80,12 @@ public class SoarBridge
     {
         env = _e;
         c = env.getCreature();
-        
+        World word = World.getInstance();
+        try {        
+            CommandUtility.sendNewDeliverySpot(4, 200, 200);
+        } catch (CommandExecException ex) {
+            Logger.getLogger(SoarBridge.class.getName()).log(Level.SEVERE, null, ex);
+        }
         try
         {
             ThreadedAgent tag = ThreadedAgent.create();
@@ -138,6 +148,9 @@ public class SoarBridge
             case Constants.categoryCREATURE:
                 itemType = "CREATURE";
                 break;
+            case Constants.categoryDeliverySPOT:
+                itemType = "DELIVERYSPOT";
+                break;
         }
         return itemType;
     }
@@ -146,61 +159,74 @@ public class SoarBridge
     /**
      * Create the WMEs at the InputLink of SOAR
      */
-    private void prepareInputLink() 
-    {
+    private void prepareInputLink() {
         //SymbolFactory sf = agent.getSymbols();
-        Creature c = env.getCreature();
+        Creature c = env.getCreature().updateState();
+
         inputLink = agent.getInputOutput().getInputLink();
-        try
-        {
-            if (agent != null)
-            {
-              //SimulationCreature creatureParameter = (SimulationCreature)parameter;
-              // Initialize Creature Entity
-              creature = CreateIdWME(inputLink, "CREATURE");
-              // Initialize Creature Memory
-              creatureMemory = CreateIdWME(creature, "MEMORY");
-              
-              Calendar lCDateTime = Calendar.getInstance();
-              creatureParameters = CreateIdWME(creature, "PARAMETERS");
-              CreateFloatWME(creatureParameters, "MINFUEL", 950);
-              CreateFloatWME(creatureParameters, "TIMESTAMP", lCDateTime.getTimeInMillis());
-              // Setting creature Position
-              creaturePosition = CreateIdWME(creature, "POSITION");
-              CreateFloatWME(creaturePosition, "X", c.getPosition().getX());
-              CreateFloatWME(creaturePosition, "Y", c.getPosition().getY());
-              // Set creature sensors
-              creatureSensor = CreateIdWME(creature, "SENSOR");
-              // Create Fuel Sensors
-              Identifier fuel = CreateIdWME(creatureSensor, "FUEL");
-              CreateFloatWME(fuel, "VALUE",c.getFuel());
-              // Create Visual Sensors
-              Identifier visual = CreateIdWME(creatureSensor, "VISUAL");
-              List<Thing> thingsList = (List<Thing>) c.getThingsInVision();
-              for (Thing t : thingsList) 
-                {
-//                 if(ateFoodName.contains(t.getName()) || gotJewels.contains(t.getName())){
-//                     continue;
-//                 }
-                 Identifier entity = CreateIdWME(visual, "ENTITY");
-                 CreateFloatWME(entity, "DISTANCE", GetGeometricDistanceToCreature(t.getX1(),t.getY1(),t.getX2(),t.getY2(),c.getPosition().getX(),c.getPosition().getY()));                                                    
-                 CreateFloatWME(entity, "X", t.getX1());
-                 CreateFloatWME(entity, "Y", t.getY1());
-                 CreateFloatWME(entity, "X2", t.getX2());
-                 CreateFloatWME(entity, "Y2", t.getY2());
-                 CreateStringWME(entity, "TYPE", getItemType(t.getCategory()));
-                 CreateStringWME(entity, "NAME", t.getName());
-                 CreateStringWME(entity, "COLOR",Constants.getColorName(t.getMaterial().getColor()));                                                    
+        try {
+            if (agent != null) {
+                //SimulationCreature creatureParameter = (SimulationCreature)parameter;
+                // Initialize Creature Entity
+                creature = CreateIdWME(inputLink, "CREATURE");
+                // Initialize Creature Memory
+                creatureMemory = CreateIdWME(creature, "MEMORY");
+
+                creatureLeaflets = CreateIdWME(creature, "LEAFLETS");
+
+                Calendar lCDateTime = Calendar.getInstance();
+                creatureParameters = CreateIdWME(creature, "PARAMETERS");
+                CreateFloatWME(creatureParameters, "MINFUEL", 300);
+                CreateFloatWME(creatureParameters, "TIMESTAMP", lCDateTime.getTimeInMillis());
+                // Setting creature Position
+                creaturePosition = CreateIdWME(creature, "POSITION");
+                CreateFloatWME(creaturePosition, "X", c.getPosition().getX());
+                CreateFloatWME(creaturePosition, "Y", c.getPosition().getY());
+                // Set creature sensors
+                creatureSensor = CreateIdWME(creature, "SENSOR");
+                // Create Fuel Sensors
+                Identifier fuel = CreateIdWME(creatureSensor, "FUEL");
+                CreateFloatWME(fuel, "VALUE", c.getFuel());
+                // Create Visual Sensors
+                Identifier visual = CreateIdWME(creatureSensor, "VISUAL");
+                List<Thing> thingsList = (List<Thing>) c.getThingsInVision();
+                for (Thing t : thingsList) {
+                    Identifier entity = CreateIdWME(visual, "ENTITY");
+                    CreateFloatWME(entity, "DISTANCE", GetGeometricDistanceToCreature(t.getX1(), t.getY1(), t.getX2(), t.getY2(), c.getPosition().getX(), c.getPosition().getY()));
+                    CreateFloatWME(entity, "X", t.getX1());
+                    CreateFloatWME(entity, "Y", t.getY1());
+                    CreateFloatWME(entity, "X2", t.getX2());
+                    CreateFloatWME(entity, "Y2", t.getY2());
+                    CreateStringWME(entity, "TYPE", getItemType(t.getCategory()));
+                    CreateStringWME(entity, "NAME", t.getName());
+                    CreateStringWME(entity, "COLOR", Constants.getColorName(t.getMaterial().getColor()));
+
+                    if (t.getCategory() == Constants.categoryDeliverySPOT) {
+                        seenDeliverySpot = true;
+                    }
                 }
-              
-              updateFoodList(thingsList);
-              updateJewelList(thingsList);
-              
-              CreateFloatWME(creatureMemory, "COUNT", knownFoods.size() + knownJewels.size());
+
+                boolean leafletCompleted = false;
+                for (Leaflet l : c.getLeaflets()) {
+                    if (l.isCompleted()) {
+                        leafletCompleted = true;
+                        System.out.println("passouy");
+                        break;
+                    }
+                }
+
+                CreateStringWME(creatureLeaflets, "COMPLETED", leafletCompleted ? "YES" : "NO"); // Note "true" em minúsculas
+                CreateStringWME(creatureLeaflets, "SEENDELIVERYSPOT", seenDeliverySpot ? "YES" : "NO"); // Note "true" em minúsculas
+
+                CreateFloatWME(creatureLeaflets, "X", 200);
+                CreateFloatWME(creatureLeaflets, "Y", 200);
+
+                updateFoodList(thingsList);
+                updateJewelList(thingsList);
+
+                CreateFloatWME(creatureMemory, "COUNT", knownFoods.size() + knownJewels.size());
             }
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             logger.severe("Error while Preparing Input Link");
             e.printStackTrace();
         }
@@ -274,8 +300,6 @@ public class SoarBridge
             CreateStringWME(entity, "TYPE", "FOOD");
             CreateStringWME(entity, "NAME", t.getName());
         }
-
-        System.out.println("Foods: " + knownFoods);
     }
 
     private double GetGeometricDistanceToCreature(double x1, double y1, double x2, double y2, double xCreature, double yCreature)
@@ -362,9 +386,7 @@ public class SoarBridge
                     String name  = com.getAttribute().asString().getValue();
                     Command.CommandType commandType = Enum.valueOf(Command.CommandType.class, name);
                     Command command = null;
-                    
-                    System.out.println(name);
-                    
+                                        
 
                     switch(commandType)
                     {
@@ -547,7 +569,27 @@ public class SoarBridge
     {
         if (soarCommandGet != null)
         {
+            c=env.getCreature().updateState();
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(SoarBridge.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            c.updateBag();
             c.putInSack(soarCommandGet.getThingName());
+            
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(SoarBridge.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            c=env.getCreature().updateState();
+            for(Leaflet l : c.getLeaflets()){
+                c.updateLeaflet(l.getID(), l.getItems(), l.getSituation());
+            }
+            c.updateBag();
+            
+            c = c.updateState();
             knownJewels.removeIf(thing -> thing.getName().equals(soarCommandGet.getThingName()));
             gotJewels.add(soarCommandGet.getThingName());
             
