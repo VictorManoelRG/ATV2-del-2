@@ -69,7 +69,6 @@ public class SoarBridge {
 
     private boolean seenDeliverySpot = false;
 
-    private Set<Long> deliveredLeaflets = new HashSet<>();
 
     /**
      * Constructor class
@@ -226,9 +225,6 @@ public class SoarBridge {
         boolean completed = false;
 
         for (Leaflet l : c.getLeaflets()) {
-            if (deliveredLeaflets.contains(l.getID())) {
-                continue; // Pula leaflets já entregues
-            }
 
             Map<String, Integer[]> items = l.getItems();
             if (items == null || items.isEmpty()) {
@@ -624,9 +620,7 @@ public class SoarBridge {
 
             if (leaflets != null) {
                 for (var leaflet : leaflets) {
-                    if (!deliveredLeaflets.contains(leaflet.getID())) {
-                        continue;
-                    }
+
                     var itemsMap = leaflet.getItems();
 
                     if (itemsMap.containsKey(color)) {
@@ -676,7 +670,7 @@ public class SoarBridge {
         if (commandDeliver != null) {
             for (Leaflet l : c.getLeaflets()) {
                 // Verifica apenas pelo flag isCompleted e se não foi entregue
-                if (isLeafletComplete(l) && !deliveredLeaflets.contains(l.getID())) {
+                if (isLeafletComplete(l)) {
                     try {
                         c.deliverLeaflet(String.valueOf(l.getID()));
                         try {
@@ -684,7 +678,6 @@ public class SoarBridge {
                         } catch (InterruptedException ex) {
                             Logger.getLogger(SoarBridge.class.getName()).log(Level.SEVERE, null, ex);
                         }
-                        deliveredLeaflets.add(l.getID());
                         c = c.updateState();
                         System.out.println("Leaflet " + l.getID() + " entregue com sucesso");
                     } catch (CommandExecException ex) {
