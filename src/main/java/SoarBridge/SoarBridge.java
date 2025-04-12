@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import org.jsoar.kernel.Agent;
 import org.jsoar.kernel.Phase;
 import org.jsoar.kernel.RunType;
@@ -68,7 +69,6 @@ public class SoarBridge {
     private Set<String> gotJewels = new HashSet<>();
 
     private boolean seenDeliverySpot = false;
-
 
     /**
      * Constructor class
