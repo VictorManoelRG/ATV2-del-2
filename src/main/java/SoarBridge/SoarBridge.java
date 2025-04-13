@@ -7,6 +7,7 @@ package SoarBridge;
 import Simulation.Environment;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -69,6 +70,11 @@ public class SoarBridge {
     private Set<String> gotJewels = new HashSet<>();
 
     private boolean seenDeliverySpot = false;
+
+    private List<Thing> jewelsToCollect = new ArrayList<>();
+    private Leaflet chosenLeaflet = null;
+
+    private boolean seekingBestJewels = false;
 
     /**
      * Constructor class
@@ -201,9 +207,7 @@ public class SoarBridge {
                 }
 
                 boolean leafletCompleted = checkLeafletCompleted();
-                if (leafletCompleted) {
-                    System.out.println("a");
-                }
+
                 CreateStringWME(creatureLeaflets, "COMPLETED", leafletCompleted ? "YES" : "NO"); // Note "true" em minúsculas
                 CreateStringWME(creatureLeaflets, "SEENDELIVERYSPOT", seenDeliverySpot ? "YES" : "NO"); // Note "true" em minúsculas
 
@@ -213,12 +217,52 @@ public class SoarBridge {
                 updateFoodList(thingsList);
                 updateJewelList(thingsList);
 
+                boolean canCompleteLeaflet = canCompleteBestLeafletWithKnownJewels();
+                CreateStringWME(creatureMemory, "CANCOMPLETE", canCompleteLeaflet ? "YES" : "NO");
+
+                if (canCompleteLeaflet) {
+                    System.out.println("PODE COMPLETAR");
+                    seekingBestJewels = true;
+                    Thing closest = getClosestJewelToCollect();
+                    if (closest != null) {
+                        Identifier toCollect = CreateIdWME(creatureMemory, "TARGETJEWEL");
+                        CreateStringWME(toCollect, "NAME", closest.getName());
+                        CreateFloatWME(toCollect, "X", closest.getX1());
+                        CreateFloatWME(toCollect, "Y", closest.getY1());
+                    }
+                }
+                if (seekingBestJewels && jewelsToCollect.isEmpty()) {
+                    seekingBestJewels = false;
+                    CreateStringWME(creatureMemory, "COLETAFINALIZADA", "YES");
+                    System.out.println("FINALIZADA");
+
+                }
+
                 CreateFloatWME(creatureMemory, "COUNT", knownFoods.size() + knownJewels.size());
             }
         } catch (Exception e) {
             logger.severe("Error while Preparing Input Link");
             e.printStackTrace();
         }
+    }
+
+    public Thing getClosestJewelToCollect() {
+        var pos = c.getPosition();
+        Thing closest = null;
+        double minDist = Double.MAX_VALUE;
+
+        for (Thing jewel : jewelsToCollect) {
+            double dx = jewel.getX1() - pos.getX();
+            double dy = jewel.getY1() - pos.getY();
+            double dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < minDist) {
+                minDist = dist;
+                closest = jewel;
+            }
+        }
+
+        return closest;
     }
 
     private boolean checkLeafletCompleted() {
@@ -252,6 +296,93 @@ public class SoarBridge {
         }
 
         return completed; // <--- AQUI ESTAVA O ERRO
+    }
+
+    public boolean canCompleteBestLeafletWithKnownJewels() {
+        // Limpa as listas de trabalho
+        jewelsToCollect.clear();
+        chosenLeaflet = null;
+
+        // Verifica se há dados válidos
+        if (knownJewels == null || knownJewels.isEmpty() || c == null || c.getLeaflets() == null) {
+            return false;
+        }
+
+        // Agrupa jóias por cor
+        Map<String, List<Thing>> jewelsByColor = new HashMap<>();
+        for (Thing jewel : knownJewels) {
+            if (jewel != null && jewel.getAttributes() != null) {
+                String color = jewel.getAttributes().getColor();
+                if (color != null) {
+                    jewelsByColor.computeIfAbsent(color, k -> new ArrayList<>()).add(jewel);
+                }
+            }
+        }
+
+        int bestScore = -1;
+        List<Thing> bestJewels = null;
+
+        // Itera sobre todos os Leaflets
+        for (Leaflet leaflet : c.getLeaflets()) {
+            if (leaflet == null || leaflet.getItems() == null) {
+                continue;
+            }
+
+            // Se o leaflet já estiver completo, pule para o próximo
+            if (isLeafletComplete(leaflet)) {
+                continue;
+            }
+
+            // Obter o que falta para completar o leaflet
+            Map<String, Integer> missing = leaflet.getWhatToCollect();
+            if (missing == null || missing.isEmpty()) {
+                continue;
+            }
+
+            List<Thing> tempJewels = new ArrayList<>();
+            boolean canComplete = true;
+
+            // Verifica se há jóias suficientes para cada cor
+            for (Map.Entry<String, Integer> entry : missing.entrySet()) {
+                String color = entry.getKey();
+                int required = entry.getValue();
+
+                if (required <= 0) {
+                    continue;
+                }
+
+                List<Thing> available = jewelsByColor.getOrDefault(color, Collections.emptyList());
+                if (available.size() < required) {
+                    canComplete = false;
+                    break;
+                }
+
+                // Adiciona apenas as jóias necessárias (com verificação de limites)
+                int count = Math.min(required, available.size());
+                for (int i = 0; i < count; i++) {
+                    tempJewels.add(available.get(i));
+                }
+            }
+
+            // Se for possível completar o leaflet e ele tiver a maior pontuação
+            if (canComplete && !tempJewels.isEmpty()) {
+                int points = leaflet.getPayment();
+                if (points > bestScore) {
+                    bestScore = points;
+                    bestJewels = new ArrayList<>(tempJewels);
+                    chosenLeaflet = leaflet;
+                }
+            }
+        }
+
+        // Se encontramos jóias para coletar, adiciona à lista
+        if (bestJewels != null && !bestJewels.isEmpty()) {
+            jewelsToCollect.addAll(bestJewels);
+            System.out.println(jewelsToCollect);
+            return true;
+        }
+
+        return false;
     }
 
     private void updateJewelList(List<Thing> thingsList) {
@@ -568,13 +699,10 @@ public class SoarBridge {
                         processDeliverCommand((CommandDeliver) command.getCommandArgument());
 
                     default:
-                        System.out.println("Nenhum comando definido ...");
-                        // Do nothing
                         break;
                 }
             }
         } else {
-            System.out.println("comando nulo ...");
         }
     }
 
@@ -642,6 +770,7 @@ public class SoarBridge {
             c.putInSack(soarCommandGet.getThingName());
             c = c.updateState();
             knownJewels.removeIf(thing -> thing.getName().equals(soarCommandGet.getThingName()));
+            jewelsToCollect.removeIf(thing -> thing.getName().equals(soarCommandGet.getThingName()));
             gotJewels.add(soarCommandGet.getThingName());
 
         } else {
@@ -679,7 +808,6 @@ public class SoarBridge {
                             Logger.getLogger(SoarBridge.class.getName()).log(Level.SEVERE, null, ex);
                         }
                         c = c.updateState();
-                        System.out.println("Leaflet " + l.getID() + " entregue com sucesso");
                     } catch (CommandExecException ex) {
                         Logger.getLogger(SoarBridge.class.getName()).log(Level.SEVERE, null, ex);
                     }

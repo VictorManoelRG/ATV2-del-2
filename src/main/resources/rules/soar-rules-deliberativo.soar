@@ -830,3 +830,36 @@ sp {halt*condition
   (interrupt)
 }       
 
+sp {propose*subgoal*plain-collect
+   (state <s> ^io.input-link <il>)
+   (<il> ^CREATURE <c>)
+   (<c> ^MEMORY <m>)
+   (<m> ^CANCOMPLETE YES)
+-->
+   (write | Subgoal: planejar-coleta iniciado|)
+   (<s> ^substate <sub>)
+   (<sub> ^name plain-collect)}
+
+sp {propose*move*para*targetJewel
+   (state <s> ^name plain-collect
+           ^io.input-link <il>)
+   (<il> ^CREATURE <c>)
+   (<c> ^MEMORY <m>)
+   (<m> ^TARGETJEWEL <jewel>)
+   (<jewel> ^X <x> ^Y <y> ^NAME <name>)
+-->
+   (write | Propondo movimento para <name> em (<x>, <y>)|)
+   (<s> ^operator <o> +)
+   (<o> ^name moveJewel
+        ^parameter <jewel>)
+   (<jewel> ^X <x> ^Y <y> ^NAME <name>)}
+
+sp {encerrar*subgoal*planejar-coleta
+   (state <s> ^name plain-collect
+           ^io.input-link <il>)
+   (<il> ^CREATURE <c>)
+   (<c> ^MEMORY <m>)
+   (<m> ^COLETAFINALIZADA YES)
+-->
+   (write | Coleta finalizada. Pronto para planejar entrega!|)
+   (<s> ^result fim)}
