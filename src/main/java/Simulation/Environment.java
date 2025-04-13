@@ -53,6 +53,10 @@ public class Environment
     public Creature getCreature() {
         return(c);
     }
+    
+    public WS3DProxy getProxy() {
+        return(proxy);
+    }
 
     
 }
