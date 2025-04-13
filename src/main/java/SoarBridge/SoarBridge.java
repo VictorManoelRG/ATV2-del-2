@@ -221,14 +221,36 @@ public class SoarBridge {
                 CreateStringWME(creatureMemory, "CANCOMPLETE", canCompleteLeaflet ? "YES" : "NO");
 
                 if (canCompleteLeaflet) {
-                    System.out.println("PODE COMPLETAR");
-                    seekingBestJewels = true;
-                    Thing closest = getClosestJewelToCollect();
-                    if (closest != null) {
-                        Identifier toCollect = CreateIdWME(creatureMemory, "TARGETJEWEL");
-                        CreateStringWME(toCollect, "NAME", closest.getName());
-                        CreateFloatWME(toCollect, "X", closest.getX1());
-                        CreateFloatWME(toCollect, "Y", closest.getY1());
+                System.out.println("PODE COMPLETAR");
+                seekingBestJewels = true;
+
+                // Aqui é onde você recalcula a joia mais próxima
+                Thing closest = getClosestJewelToCollect();
+                if (closest != null) {
+                    // Adiciona a joia mais próxima como o novo alvo
+                    Identifier toCollect = CreateIdWME(creatureMemory, "TARGETJEWEL");
+                    CreateStringWME(toCollect, "NAME", closest.getName());
+                    CreateFloatWME(toCollect, "X", closest.getX1());
+                    CreateFloatWME(toCollect, "Y", closest.getY1());
+                }
+
+                // Atualiza as joias que o agente deve coletar
+                for (Thing t : jewelsToCollect) {
+                    Identifier entity = CreateIdWME(creatureMemory, "ENTITY");
+                    CreateFloatWME(entity, "X", t.getX1());
+                    CreateFloatWME(entity, "Y", t.getY1());
+                    CreateStringWME(entity, "TYPE", "JEWEL");
+                    CreateStringWME(entity, "NAME", t.getName());
+                    CreateStringWME(entity, "COLOR", t.getAttributes().getColor());
+                }
+            }  else {
+                    for (Thing t : knownJewels) {
+                        Identifier entity = CreateIdWME(creatureMemory, "ENTITY");
+                        CreateFloatWME(entity, "X", t.getX1());
+                        CreateFloatWME(entity, "Y", t.getY1());
+                        CreateStringWME(entity, "TYPE", "JEWEL");
+                        CreateStringWME(entity, "NAME", t.getName());
+                        CreateStringWME(entity, "COLOR", t.getAttributes().getColor());
                     }
                 }
                 if (seekingBestJewels && jewelsToCollect.isEmpty()) {
@@ -415,14 +437,6 @@ public class SoarBridge {
             }
         }
 
-        for (Thing t : knownJewels) {
-            Identifier entity = CreateIdWME(creatureMemory, "ENTITY");
-            CreateFloatWME(entity, "X", t.getX1());
-            CreateFloatWME(entity, "Y", t.getY1());
-            CreateStringWME(entity, "TYPE", "JEWEL");
-            CreateStringWME(entity, "NAME", t.getName());
-            CreateStringWME(entity, "COLOR", t.getAttributes().getColor());
-        }
     }
 
     private void updateFoodList(List<Thing> thingsList) {

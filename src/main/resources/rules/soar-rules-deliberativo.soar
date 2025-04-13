@@ -58,6 +58,8 @@ sp {apply*wander*remove*move
 # Propose*see*entity*with*memory*count:
 sp {propose*see*entity*with*memory*count
    (state <s> ^io.input-link <il>)
+   (state <s> ^superstate nil
+        - ^substate.name plain-collect)
    (<il> ^CREATURE <creature>)
    (<creature> ^SENSOR.VISUAL.ENTITY <entity>)     
    (<entity> ^TYPE <type> << JEWEL FOOD >>)   
@@ -112,6 +114,7 @@ sp {apply*see*entity*with*memory*count
 sp {propose*see*entity*without*memory*count
    (state <s> ^io.input-link <il>)
    (<il> ^CREATURE <creature>)
+   - (<s> ^name plain-collect)
    (<creature> ^SENSOR.VISUAL.ENTITY <entity>)
    (<entity> ^TYPE <type> << JEWEL FOOD >>)
    (<entity> ^X <x>)
