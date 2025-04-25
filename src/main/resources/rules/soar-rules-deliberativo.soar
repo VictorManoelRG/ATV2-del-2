@@ -893,7 +893,7 @@ sp {eaters*elaborate*problem-space
    (<p> ^name eaters
         ^default-state-copy yes
         ^two-level-attributes CREATURE)
-   (<s> ^CREATURE <c>)
+   (<s> ^CREATURE (deep-copy <c>))
 }
 
 
@@ -917,8 +917,7 @@ sp {propose*move*jewel*deliberativo
    (<leafletEntity> ^COLOR <entityInMemoryColor>)
    (<leafletEntity> ^REQUIRED > 0)
 -->
-   (write | Propose move deliberativo !|)
-   (write |Posição da criatura: X=| <creaturePositionX> | Y=| <creaturePositionY>)
+   #(write |Jóia candidata: | <entityInMemoryName> | Cor: | <entityInMemoryColor>)
    (<s> ^operator <o> +)
    (<o> ^name moveJewelInPlanning)
    (<o> ^parameter <jewel>)
@@ -948,18 +947,92 @@ sp {apply*move*jewel*deliberativo
    (<entityInMemory> ^NAME <entityInMemoryName>)
    (<ol> ^plan <P>)
    (<P> ^step <V>)
+   (<creature> ^SENSOR.VISUAL.ENTITY <entity>)
+   (<entity> ^TYPE JEWEL)
+   (<entity> ^NAME <entityInMemoryName>) 
+   (<entity> ^DISTANCE <actualDist>) 
 -->
-   (write | Apply move deliberativo!|)
+   (write | Apply MOVE deliberado |)
    (<P> ^step <new-step>)
    (<new-step> ^X <x>
                ^Y <y>
                ^Vel 1
                ^VelL 1
                ^VelR 1)
-   (<creature> ^POSITION <pos> -)
-   (<creature> ^POSITION <new-pos>)
+    (<creature> ^POSITION <pos> -
+                ^POSITION <new-pos>)
    (<new-pos> ^X <x>
               ^Y <y>)
+   (<entity> ^DISTANCE <actualDist> -
+             ^DISTANCE 0)
 } 
+
+
+sp {diagnostico*empate
+   (state <s> ^name resolve-tie
+              ^operator <o> +)
+   (<o> ^name <nome>)
+-->
+   #(write |Operador proposto: | <nome> crlf)
+}
+
+sp {moveJewel*getJewel*preferences*deliberativo
+(state <s> ^name resolve-tie
+           ^operator <o> + 
+                     <o2> +)
+(<o> ^name getJewelInPlanning)
+(<o2> ^name moveJewelInPlanning)
+-->
+#(write | Empate !|)
+(<s> ^operator <o> > <o2>) } 
+
+
+sp {propose*get*jewel*deliberativo
+   (state <s> ^name resolve-tie
+              ^CREATURE <creature>)
+   (<creature> ^SENSOR.VISUAL.ENTITY <entity>)
+   (<entity> ^TYPE JEWEL) 
+   (<entity> ^DISTANCE <jewelDistance> < 30)
+   (<entity> ^NAME <jewelName>)
+   (<entity> ^COLOR <jewelColor>)
+   (<creature> ^MEMORY.ENTITY.NAME <memoryItemName> <jewelName>)     
+-->
+   (write | Propose getJewel deliberativo! Jewel name:| <jewelName> )
+   (<s> ^operator <o> +)
+   (<o> ^name getJewelInPlanning)
+   (<o> ^parameter <jewel>)
+   (<jewel> ^NAME <jewelName>)
+   (<jewel> ^DISTANCE <jewelDistance>)
+   (<jewel> ^COLOR <jewelColor>)}
+   
+# Apply*get*jewel:
+# If the move operator is selected, then generate an output command to it 
+sp {apply*get*jewel*deliberativo
+    (state <s> ^name resolve-tie
+               ^operator <o>
+               ^CREATURE <creature>)
+    (<o> ^name getJewelInPlanning)
+    (<s> ^superstate <ss>)
+    (<ss> ^io.output-link <ol>)
+    (<ol> ^plan <P>)
+    (<P> ^step <V>)
+    (<o> ^parameter <param>)
+    (<param> ^COLOR <jewelColor>)
+    (<creature> ^LEAFLETS <lf>)
+    (<lf> ^ENTITY <entity>)
+    (<entity> ^COLOR <jewelColor>)
+    (<param> ^NAME <jewelName>)
+    (<creature> ^SENSOR <sensor>)
+    (<sensor> ^VISUAL <visual>)
+    (<visual> ^ENTITY <entityToRemove>)
+    (<entityToRemove> ^NAME <jewelName>)
+-->
+    (write | Apply GET deliberado |)
+    (write |Apply GET deliberado — apagando ENTITY com nome: | <jewelName> | \n|)
+    (<visual> ^ENTITY <entityToRemove> -)
+}
+
+
+
 
  
