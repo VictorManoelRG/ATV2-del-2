@@ -954,7 +954,8 @@ sp {apply*move*jewel*deliberativo
 -->
    (write | Apply MOVE deliberado |)
    (<P> ^step <new-step>)
-   (<new-step> ^X <x>
+   (<new-step> ^Command MOVE
+               ^X <x>
                ^Y <y>
                ^Vel 1
                ^VelL 1
@@ -1033,6 +1034,9 @@ sp {apply*get*jewel*deliberativo
     (<visual> ^ENTITY <entityToRemove> -)
     (<entity> ^REQUIRED <req> -)                 
     (<entity> ^REQUIRED (- <req> 1))
+    (<P> ^step <new-step>)
+    (<new-step> ^Command GET
+                ^Name <jewelName>)
 }
 
 
