@@ -78,6 +78,10 @@ public class SoarBridge {
     private boolean seekingBestJewels = false;
 
     private Map<Long, Boolean> mapLeafletCompleted = new HashMap<>();
+    
+    private boolean canCompleteLeaflet;
+    
+    private boolean tieOccurred = false;
 
     /**
      * Constructor class
@@ -229,6 +233,9 @@ public class SoarBridge {
 
                 boolean leafletCompleted = checkLeafletCompleted();
 
+                if (leafletCompleted) {
+                    System.out.println("");
+                }
                 CreateStringWME(creatureLeaflets, "COMPLETED", leafletCompleted ? "YES" : "NO"); // Note "true" em minúsculas
                 CreateStringWME(creatureLeaflets, "SEENDELIVERYSPOT", seenDeliverySpot ? "YES" : "NO"); // Note "true" em minúsculas
 
@@ -238,22 +245,12 @@ public class SoarBridge {
                 updateFoodList(thingsList);
                 updateJewelList(thingsList);
 
-                boolean canCompleteLeaflet = canCompleteBestLeafletWithKnownJewels();
+                canCompleteLeaflet = canCompleteBestLeafletWithKnownJewels() && !leafletCompleted;
                 CreateStringWME(creatureMemory, "CANCOMPLETE", canCompleteLeaflet ? "YES" : "NO");
 
                 if (canCompleteLeaflet) {
                     System.out.println("PODE COMPLETAR");
                     seekingBestJewels = true;
-
-                    // Aqui é onde você recalcula a joia mais próxima
-                    Thing closest = getClosestJewelToCollect();
-                    if (closest != null) {
-                        // Adiciona a joia mais próxima como o novo alvo
-                        Identifier toCollect = CreateIdWME(creatureMemory, "TARGETJEWEL");
-                        CreateStringWME(toCollect, "NAME", closest.getName());
-                        CreateFloatWME(toCollect, "X", closest.getX1());
-                        CreateFloatWME(toCollect, "Y", closest.getY1());
-                    }
 
                     // Atualiza as joias que o agente deve coletar
                     for (Thing t : jewelsToCollect) {
@@ -263,6 +260,7 @@ public class SoarBridge {
                         CreateStringWME(entity, "TYPE", "JEWEL");
                         CreateStringWME(entity, "NAME", t.getName());
                         CreateStringWME(entity, "COLOR", t.getAttributes().getColor());
+                        putRequiredJewelsForLeaflet();
                     }
                 } else {
                     if (seekingBestJewels && jewelsToCollect.isEmpty()) {
@@ -286,6 +284,15 @@ public class SoarBridge {
         } catch (Exception e) {
             logger.severe("Error while Preparing Input Link");
             e.printStackTrace();
+        }
+    }
+
+    private void putRequiredJewelsForLeaflet() {
+        var item = (Map<String, Integer>) chosenLeaflet.getWhatToCollect();
+        for (var entry : item.entrySet()) {
+            Identifier entity = CreateIdWME(creatureLeaflets, "ENTITY");
+            CreateStringWME(entity, "COLOR", entry.getKey());
+            CreateFloatWME(entity, "REQUIRED", entry.getValue());
         }
     }
 
@@ -643,6 +650,8 @@ public class SoarBridge {
                                 commandList.add(command);
                             }
                             break;
+                        case TIE:
+                            tieOccurred = true;
                         default:
                             break;
                     }
@@ -714,6 +723,9 @@ public class SoarBridge {
 
     private void processCommands(List<Command> commandList) throws CommandExecException {
 
+        if(tieOccurred){
+            return;
+        }
         if (commandList != null) {
             for (Command command : commandList) {
                 switch (command.getCommandType()) {
@@ -1010,4 +1022,5 @@ public class SoarBridge {
     public Set<Wme> getWorkingMemory() {
         return (agent.getAllWmesInRete());
     }
+
 }

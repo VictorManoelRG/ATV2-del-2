@@ -1,12 +1,13 @@
 ################################  CONFIGURATION ################################
 #watch 5
-#learn --off
+#learn --on
+#watch --chunks --print
+
 #epmem --set learning off 
 #smem --off
 #log --level error
 
 #watch --proposal
-
 
 watch 5
 
@@ -648,12 +649,12 @@ sp {getJewel*avoidBrick*preferences
 
 # Move Jewel vs Move Jewel Preferences
 sp {moveJewel*moveJewel*less*distance
-(state <s> ^attribute operator 
-           ^impasse tie
-           ^item <o> {<> <o> <o2>}
-           ^superstate <ss>)
-(<ss> ^io.input-link <il>)
-(<il> ^CREATURE <creature>)                 
+   (state <s> ^attribute operator
+              ^impasse tie
+              ^item <o> {<> <o> <o2>}
+              ^superstate <ss>)
+   (<ss> ^io.input-link <il>)
+   (<il> ^CREATURE <creature>)
 (<o> ^name moveJewel)
 (<o2> ^name moveJewel)
 (<o2> ^parameter.distance <distance2>)
@@ -833,36 +834,89 @@ sp {halt*condition
   (interrupt)
 }       
 
-sp {propose*subgoal*plain-collect
-   (state <s> ^io.input-link <il>)
-   (<il> ^CREATURE <c>)
-   (<c> ^MEMORY <m>)
-   (<m> ^CANCOMPLETE YES)
--->
-   (write | Subgoal: planejar-coleta iniciado|)
-   (<s> ^substate <sub>)
-   (<sub> ^name plain-collect)}
 
-sp {propose*move*para*targetJewel
-   (state <s> ^name plain-collect
-           ^io.input-link <il>)
-   (<il> ^CREATURE <c>)
-   (<c> ^MEMORY <m>)
-   (<m> ^TARGETJEWEL <jewel>)
-   (<jewel> ^X <x> ^Y <y> ^NAME <name>)
+sp {plan-build
+	(state <s> ^io.output-link <OL>
+			 -^plan <P>)
 -->
-   (write | Propondo movimento para <name> em (<x>, <y>)|)
+	(<OL> ^plan <P>)
+	(<P> ^step 0)
+}
+
+
+sp {default*start-deliberative*minimal
+   :default
+   (state <s> ^impasse tie
+              ^superstate <ss>)
+
+   (<ss> ^io.input-link <il>)
+   (<ss> ^io.output-link <out>)
+   (<il> ^CREATURE <c>)    
+   (<c> ^MEMORY <m>)    
+   (<m> ^CANCOMPLETE YES) 
+-->
+   (write |DELIBERATIVO DISPAROU!|)
+   (<s> ^name resolve-tie)
+   (<out> ^TIE <tie>)
+   (<tie> ^status YES)
+}
+
+	
+
+sp {eaters*elaborate*problem-space
+   (state <s> ^name resolve-tie
+              ^superstate <ss>)   
+   (<ss> ^io.input-link <in>)
+   (<in> ^CREATURE <c>)    
+   (<c> ^MEMORY <m>)    
+   (<m> ^CANCOMPLETE YES)  
+-->
+   (write | Memoria duplicada!|)
+   (<s> ^problem-space <p>)
+   (<p> ^name eaters
+        ^default-state-copy yes
+        ^two-level-attributes CREATURE)
+   (<s> ^CREATURE <c>)
+}
+
+
+
+sp {propose*move*jewel*deliberativo
+   (state <s> ^name resolve-tie
+              ^CREATURE <creature>)
+   (<creature> ^MEMORY <memory>
+              ^POSITION <creaturePosition>
+              ^LEAFLETS <leaflets>)
+   (<creaturePosition> ^X <creaturePositionX>)
+   (<creaturePosition> ^Y <creaturePositionY>)
+   (<memory> ^CANCOMPLETE YES)
+   (<memory> ^ENTITY <entityInMemory>)
+   (<entityInMemory> ^TYPE JEWEL
+                     ^X <entityInMemoryPositionX>
+                     ^Y <entityInMemoryPositionY>
+                     ^NAME <entityInMemoryName>
+                     ^COLOR <entityInMemoryColor>)
+   (<leaflets> ^ENTITY <leafletEntity>)
+   (<leafletEntity> ^COLOR <entityInMemoryColor>)
+   (<leafletEntity> ^REQUIRED > 0)
+-->
+   (write | Propose move deliberativo !|)
+   (write |Posição da criatura: X=| <creaturePositionX> | Y=| <creaturePositionY>)
    (<s> ^operator <o> +)
-   (<o> ^name moveJewel
-        ^parameter <jewel>)
-   (<jewel> ^X <x> ^Y <y> ^NAME <name>)}
+   (<o> ^name moveJewelInPlanning)
+   (<o> ^parameter <jewel>)
+   (<o> ^parameterCreature <creature>)
+   (<jewel> ^distance (sqrt (+ (* (- <creaturePositionX> <entityInMemoryPositionX>) (- <creaturePositionX> <entityInMemoryPositionX>)) (* (- <creaturePositionY> <entityInMemoryPositionY>) (- <creaturePositionY> <entityInMemoryPositionY>)))))
+   (<jewel> ^X <entityInMemoryPositionX>)
+   (<jewel> ^Y <entityInMemoryPositionY>)
+   (<jewel> ^NAME <entityInMemoryName>)
+   (<jewel> ^COLOR <entityInMemoryColor>)
+}
 
-sp {encerrar*subgoal*planejar-coleta
-   (state <s> ^name plain-collect
-           ^io.input-link <il>)
-   (<il> ^CREATURE <c>)
-   (<c> ^MEMORY <m>)
-   (<m> ^COLETAFINALIZADA YES)
+sp {apply*move*jewel*deliberativo
+   (state <s> ^name resolve-tie
+              ^operator <o>)
+
 -->
-   (write | Coleta finalizada. Pronto para planejar entrega!|)
-   (<s> ^result fim)}
+   (write | Apply move deliberativo!|)
+}
