@@ -2,39 +2,34 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package SoarBridge;
 
 /**
  *
  * @author Danilo
  */
-public class Command
-{
-    public enum CommandType
-    {
+public class Command {
+
+    public enum CommandType {
         MOVE,
         GET,
         EAT,
-        DELIVER, 
-        TIE
+        TIE,
+        DELIVER,
+        
     }
 
     private CommandType commandType;
     private Object commandArgument;
 
-
-    public Command()
-    {
+    public Command() {
         commandType = null;
         commandArgument = null;
     }
 
-    public Command(CommandType _command)
-    {
+    public Command(CommandType _command) {
         commandType = _command;
-        switch (commandType)
-        {
+        switch (commandType) {
             case MOVE:
                 commandArgument = new CommandMove();
                 break;
@@ -50,41 +45,41 @@ public class Command
                 commandArgument = new CommandDeliver();
                 break;
 
+            case TIE:
+                commandArgument = new CommandTie();
+                break;
+
             default:
                 commandArgument = null;
                 break;
         }
     }
 
-     /**
+    /**
      * @return the command
      */
-    public CommandType getCommandType()
-    {
+    public CommandType getCommandType() {
         return commandType;
     }
 
     /**
      * @param command the command to set
      */
-    public void setCommand(CommandType command)
-    {
+    public void setCommand(CommandType command) {
         this.commandType = command;
     }
 
     /**
      * @return the commandArgument
-    */
-    public Object getCommandArgument()
-    {
+     */
+    public Object getCommandArgument() {
         return commandArgument;
     }
 
     /**
      * @param commandArgument the commandArgument to set
      */
-    public void setCommandArgument(Object commandArgument)
-    {
+    public void setCommandArgument(Object commandArgument) {
         this.commandArgument = commandArgument;
     }
 }
