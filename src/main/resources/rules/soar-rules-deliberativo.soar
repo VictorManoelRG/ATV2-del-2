@@ -1021,6 +1021,7 @@ sp {apply*get*jewel*deliberativo
     (<creature> ^LEAFLETS <lf>)
     (<lf> ^ENTITY <entity>)
     (<entity> ^COLOR <jewelColor>)
+    (<entity> ^REQUIRED <req>)
     (<param> ^NAME <jewelName>)
     (<creature> ^SENSOR <sensor>)
     (<sensor> ^VISUAL <visual>)
@@ -1030,6 +1031,8 @@ sp {apply*get*jewel*deliberativo
     (write | Apply GET deliberado |)
     (write |Apply GET deliberado — apagando ENTITY com nome: | <jewelName> | \n|)
     (<visual> ^ENTITY <entityToRemove> -)
+    (<entity> ^REQUIRED <req> -)                 
+    (<entity> ^REQUIRED (- <req> 1))
 }
 
 
