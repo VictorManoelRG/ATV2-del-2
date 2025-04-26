@@ -283,6 +283,30 @@ public class SoarBridge {
                     }
                 }
 
+                for (Thing t : jewelsToCollect) {
+                    System.out.println("jewels to collect: " + jewelsToCollect);
+                    boolean found = false;
+                    for (var thingL : thingsList) {
+                        if (t.getName().equals(thingL.getName())) {
+                            found = true;
+                            break; // Já encontrou, pode parar
+                        }
+                    }
+                    if (found) {
+                        continue; // Não cria se já existe
+                    }
+
+                    Identifier entity = CreateIdWME(visual, "ENTITY");
+                    CreateFloatWME(entity, "DISTANCE", GetGeometricDistanceToCreature(t.getX1(), t.getY1(), t.getX2(), t.getY2(), c.getPosition().getX(), c.getPosition().getY()));
+                    CreateFloatWME(entity, "X", t.getX1());
+                    CreateFloatWME(entity, "Y", t.getY1());
+                    CreateFloatWME(entity, "X2", t.getX2());
+                    CreateFloatWME(entity, "Y2", t.getY2());
+                    CreateStringWME(entity, "TYPE", getItemType(t.getCategory()));
+                    CreateStringWME(entity, "NAME", t.getName());
+                    CreateStringWME(entity, "COLOR", t.getAttributes().getColor());
+                }
+
                 CreateFloatWME(creatureMemory, "COUNT", knownFoods.size() + knownJewels.size());
             }
         } catch (Exception e) {
@@ -297,6 +321,7 @@ public class SoarBridge {
             Identifier entity = CreateIdWME(creatureLeaflets, "ENTITY");
             CreateStringWME(entity, "COLOR", entry.getKey());
             CreateFloatWME(entity, "REQUIRED", entry.getValue());
+            System.out.println("cor a coleetar: " + entry.getKey());
         }
     }
 

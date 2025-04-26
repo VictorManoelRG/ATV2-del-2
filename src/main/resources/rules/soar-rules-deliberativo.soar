@@ -987,7 +987,7 @@ sp {propose*get*jewel*deliberativo
               ^CREATURE <creature>)
    (<creature> ^SENSOR.VISUAL.ENTITY <entity>)
    (<entity> ^TYPE JEWEL) 
-   (<entity> ^DISTANCE <jewelDistance> < 30)
+   (<entity> ^DISTANCE <jewelDistance> 0)
    (<entity> ^NAME <jewelName>)
    (<entity> ^COLOR <jewelColor>)
    (<creature> ^MEMORY.ENTITY.NAME <memoryItemName> <jewelName>)     
