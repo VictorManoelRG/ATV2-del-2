@@ -267,12 +267,12 @@ public class SoarBridge {
                     }
                     //AQUI
                     putRequiredJewelsForLeaflet();
-                    System.out.println("joias a coletar: " + jewelsToCollect);
+                    //System.out.println("joias a coletar: " + jewelsToCollect);
                 } else {
                     if (seekingBestJewels && jewelsToCollect.isEmpty()) {
                         seekingBestJewels = false;
                         CreateStringWME(creatureMemory, "COLETAFINALIZADA", "YES");
-                        System.out.println("FINALIZADA");
+                        //System.out.println("FINALIZADA");
                     }
 
                     for (Thing t : knownJewels) {
@@ -286,7 +286,7 @@ public class SoarBridge {
                 }
 
                 for (Thing t : jewelsToCollect) {
-                    System.out.println("jewels to collect: " + jewelsToCollect);
+                    //System.out.println("jewels to collect: " + jewelsToCollect);
                     boolean found = false;
                     for (var thingL : thingsList) {
                         if (t.getName().equals(thingL.getName())) {
@@ -327,7 +327,7 @@ public class SoarBridge {
             Identifier entity = CreateIdWME(creatureLeaflets, "ENTITY");
             CreateStringWME(entity, "COLOR", entry.getKey());
             CreateFloatWME(entity, "REQUIRED", entry.getValue());
-            System.out.println("cor a coleetar: " + entry.getKey());
+            //System.out.println("cor a coleetar: " + entry.getKey());
         }
     }
 
@@ -454,14 +454,14 @@ public class SoarBridge {
                     bestScore = points;
                     bestJewels = new ArrayList<>(tempJewels);
                     chosenLeaflet = leaflet;
-                    System.out.println("voluntario: " + chosenLeaflet);
+                    //System.out.println("voluntario: " + chosenLeaflet);
                 }
             }
         }
 
         if (bestJewels != null && !bestJewels.isEmpty()) {
             jewelsToCollect.addAll(bestJewels);
-            System.out.println("escolhido: " + chosenLeaflet);
+            //System.out.println("escolhido: " + chosenLeaflet);
             return true;
         }
 
@@ -768,9 +768,13 @@ public class SoarBridge {
                             if (commandPlan != null) {
                                 List<Command> step = GetParameterValuePlan("PLAN");
                                 Collections.reverse(step);
+                                String plano = "";
                                 for (var item : step) {
                                     commandList.add(item);
+                                    plano += item.getCommandType().toString() + " ";
                                 }
+                                
+                                System.out.println("plano traçado: " + plano);
 //                                if(!step.isEmpty()){
 //                                    commandList.add(step.get(0));
 //                                }
@@ -1007,7 +1011,7 @@ public class SoarBridge {
                         c.deliverLeaflet(String.valueOf(l.getID()));
                         if (mapLeafletCompleted.get(l.getID()) != null) {
                             mapLeafletCompleted.put(l.getID(), true);
-                            System.out.println("entrgou leaflet meta" + l);
+                            //System.out.println("entrgou leaflet meta" + l);
                         }
                         try {
                             Thread.sleep(200);
