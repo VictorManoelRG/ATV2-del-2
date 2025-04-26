@@ -911,7 +911,7 @@ sp {propose*move*jewel*deliberativo
    (<leafletEntity> ^COLOR <entityInMemoryColor>)
    (<leafletEntity> ^REQUIRED > 0)
 -->
-   #(write |Jóia candidata: | <entityInMemoryName> | Cor: | <entityInMemoryColor>)
+   (write |Jóia candidata: | <entityInMemoryName> | Cor: | <entityInMemoryColor>)
    (<s> ^operator <o> +)
    (<o> ^name moveJewelInPlanning)
    (<o> ^parameter <jewel>)
@@ -982,6 +982,20 @@ sp {moveJewel*getJewel*preferences*deliberativo
 (<s> ^operator <o> > <o2>) } 
 
 
+
+sp {moveJewel*moveJewel*less*distance*deliberativo
+(state <s> ^name resolve-tie
+           ^operator <o> + 
+                     <o2> +)
+(<o> ^name moveJewelInPlanning)
+(<o2> ^name moveJewelInPlanning)
+(<o2> ^parameter.distance <distance2>)
+(<o>  ^parameter.distance <distance> <= <distance2>)
+-->
+(write | SELECIONOU !|)
+(<s> ^operator <o> > <o2>)}
+
+
 sp {propose*get*jewel*deliberativo
    (state <s> ^name resolve-tie
               ^CREATURE <creature>)
@@ -999,6 +1013,7 @@ sp {propose*get*jewel*deliberativo
    (<jewel> ^NAME <jewelName>)
    (<jewel> ^DISTANCE <jewelDistance>)
    (<jewel> ^COLOR <jewelColor>)}
+
    
 # Apply*get*jewel:
 # If the move operator is selected, then generate an output command to it 
