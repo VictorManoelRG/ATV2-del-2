@@ -23,6 +23,7 @@ sp {propose*wander
    (<ss> ^io.input-link <il>)
    (<ss> ^superstate nil)
    (<il> ^CREATURE <creature>)
+   (<il> ^CREATURE.MEMORY.CANCOMPLETE NO)
    (<creature> ^SENSOR.VISUAL <visual>)
 -->
    (<ss> ^operator <o> +)
@@ -62,6 +63,7 @@ sp {propose*see*entity*with*memory*count
    (state <s> ^superstate nil
         - ^substate.name plain-collect)
    (<il> ^CREATURE <creature>)
+   (<il> ^CREATURE.MEMORY.CANCOMPLETE NO)
    (<creature> ^SENSOR.VISUAL.ENTITY <entity>)     
    (<entity> ^TYPE <type> << JEWEL FOOD >>)   
    (<entity> ^COLOR <color>)
@@ -117,6 +119,7 @@ sp {propose*see*entity*without*memory*count
    (<il> ^CREATURE <creature>)
    - (<s> ^name plain-collect)
    (<creature> ^SENSOR.VISUAL.ENTITY <entity>)
+   (<il> ^CREATURE.MEMORY.CANCOMPLETE NO)
    (<entity> ^TYPE <type> << JEWEL FOOD >>)
    (<entity> ^X <x>)
    (<entity> ^Y <y>) 
@@ -164,6 +167,7 @@ sp {apply*see*entity*without*memory*count
 sp {propose*move*deliverySpot
    (state <s> ^io.input-link <il>)
    (<il> ^CREATURE <creature>)
+   (<il> ^CREATURE.MEMORY.CANCOMPLETE NO)
    (<creature> ^LEAFLETS <leaflets>)
    (<leaflets> ^COMPLETED YES)
    (<leaflets> ^COMPLETED YES)
@@ -208,6 +212,7 @@ sp {apply*moveDeliverySpot*remove-move
 sp {propose*deliver*leaflet
    (state <s> ^io.input-link <il>)
    (<il> ^CREATURE <creature>)
+   (<il> ^CREATURE.MEMORY.CANCOMPLETE NO)
    (<creature> ^SENSOR.VISUAL.ENTITY <entity>) 
    (<creature> ^LEAFLETS <leaflets>)
    (<leaflets> ^COMPLETED YES) 
@@ -248,6 +253,7 @@ sp {apply*deliver*remove-leaflet
 sp {propose*move*food
    (state <s> ^io.input-link <il>)
    (<il> ^CREATURE <creature>)
+   (<il> ^CREATURE.MEMORY.CANCOMPLETE NO)
    (<creature> ^MEMORY <memory>)
    (<memory> ^ENTITY <entityInMemory>)
    (<creature> ^POSITION <creaturePosition>)
@@ -335,6 +341,7 @@ sp {apply*moveFood*remove*food
 sp {propose*eat*food
    (state <s> ^io.input-link <il>)
    (<il> ^CREATURE <creature>)
+   (<il> ^CREATURE.MEMORY.CANCOMPLETE NO)
    (<creature> ^SENSOR.VISUAL.ENTITY <entity>)
    (<entity> ^TYPE FOOD) 
    (<entity> ^DISTANCE <foodDistance> < 30)
@@ -393,6 +400,7 @@ sp {apply*eatFood*remove-eat
 sp {propose*move*jewel
    (state <s> ^io.input-link <il>)
    (<il> ^CREATURE <creature>)
+   (<il> ^CREATURE.MEMORY.CANCOMPLETE NO)
    (<creature> ^MEMORY <memory>)
    (<memory> ^ENTITY <entityInMemory>)
    (<creature> ^POSITION <creaturePosition>)
@@ -481,6 +489,7 @@ sp {apply*moveJewel*remove*jewel
 sp {propose*get*jewel
    (state <s> ^io.input-link <il>)
    (<il> ^CREATURE <creature>)
+   (<il> ^CREATURE.MEMORY.CANCOMPLETE NO)
    (<creature> ^SENSOR.VISUAL.ENTITY <entity>)
    (<entity> ^TYPE JEWEL) 
    (<entity> ^DISTANCE <jewelDistance> < 30)
@@ -537,6 +546,7 @@ sp {apply*getJewel*remove-get
 sp {propose*avoidBrick
    (state <s> ^io.input-link <il>)
    (<il> ^CREATURE <creature>)
+   (<il> ^CREATURE.MEMORY.CANCOMPLETE NO)
    (<creature> ^SENSOR.VISUAL.ENTITY <entity>)
    (<entity> ^TYPE BRICK)
    (<entity> ^DISTANCE <distance> <= 61)      
@@ -594,7 +604,6 @@ sp {apply*avoidBrick*remove-move
 
 # Move Jewel or Move Food vs See Entity
 sp {moveJewel*seeEntity*preferences
-(state <s> ^superstate nil)
 (state <s> ^operator <o> + 
                      <o2> +)
 (<o> ^name << seeEntityWithMemoryCount seeEntityWithoutMemoryCount >>)
@@ -604,7 +613,6 @@ sp {moveJewel*seeEntity*preferences
 
 # See Entity With Memory vs Avoid Brick
 sp {avoidBrick*seeEntityWithMemory*preferences
-(state <s> ^superstate nil)
 (state <s> ^operator <o> + 
                      <o2> +)
 (<o> ^name avoidBrick)
@@ -614,7 +622,6 @@ sp {avoidBrick*seeEntityWithMemory*preferences
 
 # See Ententy Without Memory Preferences
 sp {seeEntity*without*memory*preferences
-(state <s> ^superstate nil)
 (state <s> ^operator <o> +)
 (<o> ^name << seeEntityWithMemoryCount seeEntityWithoutMemoryCount >>)
 -->
@@ -625,7 +632,6 @@ sp {seeEntity*without*memory*preferences
 
 # Move Jewel vs Get Jewel
 sp {moveJewel*getJewel*preferences
-(state <s> ^superstate nil)
 (state <s> ^operator <o> + 
                      <o2> +)
 (<o> ^name getJewel)
@@ -635,7 +641,6 @@ sp {moveJewel*getJewel*preferences
 
 # Get Jewel vs SeeEntity
 sp {getJewel*seeEntity*preferences
-(state <s> ^superstate nil)
 (state <s> ^operator <o> + 
                      <o2> +)
 (<o> ^name getJewel)
@@ -645,7 +650,6 @@ sp {getJewel*seeEntity*preferences
 
 # Get Jewel vs Avoid Brick
 sp {getJewel*avoidBrick*preferences
-(state <s> ^superstate nil)
 (state <s> ^operator <o> + 
                      <o2> +)
 (<o> ^name getJewel)
@@ -655,7 +659,6 @@ sp {getJewel*avoidBrick*preferences
 
 # Move Jewel vs Move Jewel Preferences
 sp {moveJewel*moveJewel*less*distance
-(state <s> ^superstate nil)
    (state <s> ^attribute operator
               ^impasse tie
               ^item <o> {<> <o> <o2>}
@@ -686,7 +689,6 @@ sp {getJewel*getJewel*preferences
 
 # Move Food vs Eat Food
 sp {moveFood*eatFood*preferences
-(state <s> ^superstate nil)
 (state <s> ^operator <o> + 
                      <o2> +)
 (<o> ^name eatFood)
@@ -696,7 +698,6 @@ sp {moveFood*eatFood*preferences
 
 # Eat Food vs Avoid Brick
 sp {eatFood*avoidBrick*preferences
-(state <s> ^superstate nil)
 (state <s> ^operator <o> + 
                      <o2> +)
 (<o> ^name eatFood)
@@ -706,7 +707,6 @@ sp {eatFood*avoidBrick*preferences
 
 # Move Food vs Move Food Preferences
 sp {moveFood*moveFood*preferences
-(state <s> ^superstate nil)
 (state <s> ^attribute operator 
            ^impasse tie
            ^item <o> {<> <o> <o2>}
@@ -720,7 +720,6 @@ sp {moveFood*moveFood*preferences
 
 # Eat Food vs Eat Food Preferences
 sp {eatFood*eatFood*preferences
-(state <s> ^superstate nil)
 (state <s> ^attribute operator 
            ^impasse tie
            ^item <o> {<> <o> <o2>}
@@ -736,7 +735,6 @@ sp {eatFood*eatFood*preferences
 
 # Move Food vs Move Jewel Preferences - Move Food Wins
 sp {moveFood*moveJewel*preferences*moveFoodWins
-(state <s> ^superstate nil)
 (state <s> ^attribute operator 
            ^impasse tie
            ^item <o> {<> <o> <o2>}
@@ -752,7 +750,6 @@ sp {moveFood*moveJewel*preferences*moveFoodWins
 
 # Move Food vs Move Jewel Preferences - Move Jewel Wins
 sp {moveFood*moveJewel*preferences*moveJewelWins
-(state <s> ^superstate nil)
 (state <s> ^attribute operator 
            ^impasse tie
            ^item <o> {<> <o> <o2>}
@@ -767,7 +764,6 @@ sp {moveFood*moveJewel*preferences*moveJewelWins
 (<ss> ^operator <o2> > <o>)} 
 
 sp {moveDeliverySpot*preferences*moveDeliverySpotWins
-(state <s> ^superstate nil)
 (state <s> ^attribute operator
            ^impasse tie
            ^item <o> {<> <o> <o2>}
@@ -781,7 +777,6 @@ sp {moveDeliverySpot*preferences*moveDeliverySpotWins
 }
 
 sp {deliverLeaflet*preferences*deliverLeafletWins
-(state <s> ^superstate nil)
    (state <s> ^attribute operator
            ^impasse tie
            ^item <o> {<> <o> <o2>}
@@ -798,7 +793,6 @@ sp {deliverLeaflet*preferences*deliverLeafletWins
 
 # Avoid Brick vs Avoid Brick Preferences
 sp {avoidBrick*avoidBrick*without*move*jewel*preferences
-(state <s> ^superstate nil)
 (state <s> ^attribute operator 
            ^impasse tie
            ^item <o> {<> <o> <o2>}
@@ -813,7 +807,6 @@ sp {avoidBrick*avoidBrick*without*move*jewel*preferences
 
 # Avoid Brick vs Move Jewel vs Move Food Preferences with element in memory 
 sp {avoidBrick*moveJewel*moveFood*preferences
-(state <s> ^superstate nil)
 (state <s> ^attribute operator 
            ^impasse tie
            ^item <o> {<> <o> <o2>}
@@ -836,7 +829,6 @@ sp {avoidBrick*moveJewel*moveFood*preferences
 
 # Wander Preferences
 sp {wander*preferences
-(state <s> ^superstate nil)
 (state <s> ^operator <o> +)
 (<o> ^name wander)
 -->
@@ -854,11 +846,13 @@ sp {halt*condition
 
 
 sp {plan-build
-	(state <s> ^io.output-link <OL>
-			 -^PLAN <P>)
+    (state <s> ^name resolve-tie
+                ^superstate <ss>)
+    (<ss> ^io.output-link <OL>)
+    (<s> -^PLAN <P>)
 -->
-	(<OL> ^PLAN <P>)
-	(<P> ^step 0)
+    (<OL> ^PLAN <P>)
+    (<P> ^step 0)
 }
 
 

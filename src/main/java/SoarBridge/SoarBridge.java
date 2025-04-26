@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -82,6 +83,8 @@ public class SoarBridge {
     private boolean canCompleteLeaflet;
 
     private boolean tieOccurred = false;
+
+    private boolean willProcessPlan = false;
 
     /**
      * Constructor class
@@ -262,6 +265,7 @@ public class SoarBridge {
                         CreateStringWME(entity, "COLOR", t.getAttributes().getColor());
                         putRequiredJewelsForLeaflet();
                     }
+                    System.out.println("joias a coletar: " + jewelsToCollect);
                 } else {
                     if (seekingBestJewels && jewelsToCollect.isEmpty()) {
                         seekingBestJewels = false;
@@ -517,6 +521,12 @@ public class SoarBridge {
         return Math.sqrt(squared_dist);
     }
 
+    private double getDistanceToJewel(double xJewel, double yJewel, double xCreature, double yCreature) {
+        double dx = xCreature - xJewel;
+        double dy = yCreature - yJewel;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
     private void resetSimulation() {
         agent.initialize();
     }
@@ -567,11 +577,24 @@ public class SoarBridge {
         List<Command> commandList = new ArrayList<>();
 
         List<Wme> commands = Wmes.matcher(agent).filter(agent.getInputOutput().getOutputLink());
-        if (commands.size() <= 1) {
+        if (commands.isEmpty()) {
             return commandList;
         }
 
-        List<Wme> parameters = Wmes.matcher(agent).filter(commands.get(1));
+        // Procurar o WME que tenha atributo "PLAN"
+        Wme planWme = null;
+        for (Wme wme : commands) {
+            if ("PLAN".equals(wme.getAttribute().toString())) {
+                planWme = wme;
+                break;
+            }
+        }
+
+        if (planWme == null) {
+            return commandList; // Não achou um plano
+        }
+
+        List<Wme> parameters = Wmes.matcher(agent).filter(planWme);
 
         for (Wme step : parameters) {
             List<Wme> attrs = Wmes.matcher(agent).filter(step);
@@ -609,6 +632,8 @@ public class SoarBridge {
             }
         }
 
+        Set<Command> set = new LinkedHashSet<>(commandList);
+        commandList = new ArrayList<>(set);
         return commandList;
     }
 
@@ -624,6 +649,8 @@ public class SoarBridge {
         try {
             if (agent != null) {
                 List<Wme> Commands = Wmes.matcher(agent).filter(agent.getInputOutput().getOutputLink());
+
+                willProcessPlan = false;
 
                 for (Wme com : Commands) {
                     String name = com.getAttribute().asString().getValue();
@@ -710,8 +737,16 @@ public class SoarBridge {
                             if (commandPlan != null) {
                                 List<Command> step = GetParameterValuePlan("PLAN");
                                 Collections.reverse(step);
-                                commandList.add(step.get(0));
+                                for (var item : step) {
+                                    commandList.add(item);
+                                }
+//                                if(!step.isEmpty()){
+//                                    commandList.add(step.get(0));
+//                                }
+
                             }
+
+                            willProcessPlan = true;
 
                             break;
                         default:
@@ -726,7 +761,7 @@ public class SoarBridge {
             e.printStackTrace();
         }
         int size = commandList.size();
-        if(size>0){
+        if (size > 0) {
             tieOccurred = false;
         }
         return ((commandList.size() > 0) ? commandList : null);
@@ -827,11 +862,36 @@ public class SoarBridge {
         if (soarCommandMove != null) {
             if (soarCommandMove.getX() != null && soarCommandMove.getY() != null) {
                 CommandUtility.sendGoTo("0", soarCommandMove.getRightVelocity(), soarCommandMove.getLeftVelocity(), soarCommandMove.getX(), soarCommandMove.getY());
+                if (willProcessPlan) {
+                    waitUntilCloseEnough(soarCommandMove.getX(), soarCommandMove.getY());
+                }
             } else {
                 CommandUtility.sendSetTurn("0", soarCommandMove.getLinearVelocity(), soarCommandMove.getRightVelocity(), soarCommandMove.getLeftVelocity());
             }
         } else {
             logger.severe("Error processing processMoveCommand");
+        }
+    }
+
+    private void waitUntilCloseEnough(float targetX, float targetY) {
+        while (true) {
+            c = c.updateState();
+            double currentX = c.getPosition().getX();
+            double currentY = c.getPosition().getY();
+
+            // Calcula a distância até o alvo
+            double distance = getDistanceToJewel(targetX, targetY, currentX, currentY);
+
+            if (distance <= 30.0) {
+                break; // Sai do loop se estiver perto o suficiente
+            }
+
+            try {
+                Thread.sleep(100); // Espera 100 ms antes de checar de novo
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
         }
     }
 
