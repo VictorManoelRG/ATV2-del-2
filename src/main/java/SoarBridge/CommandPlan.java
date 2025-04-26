@@ -1,27 +1,19 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-
 package SoarBridge;
 
 /**
  *
- * @author Danilo
+ * @author victor
  */
-public class CommandGet
-{
-    
+public class CommandPlan {
     private String thingName = null;
 
-    public CommandGet()
+    public CommandPlan()
     {
 
-    }
-    
-    public CommandGet(String nameThing)
-    {
-        thingName = nameThing;
     }
 
     /**
@@ -39,5 +31,4 @@ public class CommandGet
     {
         this.thingName = thingName;
     }
-
 }

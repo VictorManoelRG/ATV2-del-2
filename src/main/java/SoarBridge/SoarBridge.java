@@ -78,9 +78,9 @@ public class SoarBridge {
     private boolean seekingBestJewels = false;
 
     private Map<Long, Boolean> mapLeafletCompleted = new HashMap<>();
-    
+
     private boolean canCompleteLeaflet;
-    
+
     private boolean tieOccurred = false;
 
     /**
@@ -555,11 +555,61 @@ public class SoarBridge {
         List<Wme> Parameters = Wmes.matcher(agent).filter(Commands.get(0));
         String parvalue = "";
         for (Wme w : Parameters) {
+            String att = w.getAttribute().toString();
             if (w.getAttribute().toString().equals(par)) {
                 parvalue = w.getValue().toString();
             }
         }
         return (parvalue);
+    }
+
+    private List<Command> GetParameterValuePlan(String par) {
+        List<Command> commandList = new ArrayList<>();
+
+        List<Wme> commands = Wmes.matcher(agent).filter(agent.getInputOutput().getOutputLink());
+        if (commands.size() <= 1) {
+            return commandList;
+        }
+
+        List<Wme> parameters = Wmes.matcher(agent).filter(commands.get(1));
+
+        for (Wme step : parameters) {
+            List<Wme> attrs = Wmes.matcher(agent).filter(step);
+
+            if (attrs.isEmpty()) {
+                continue;
+            }
+
+            String commandType = attrs.get(0).getValue().toString();
+
+            if (commandType.equals("GET")) {
+                String jewelName = attrs.get(1).getValue().toString();
+                CommandGet getCmd = new CommandGet();
+                getCmd.setThingName(jewelName);
+                Command command = new Command(Command.CommandType.GET);
+                command.setCommandArgument(getCmd);
+                commandList.add(command);
+            }
+
+            if (commandType.equals("MOVE")) {
+                double x = attrs.get(1).getValue().asDouble().getValue();
+                double y = attrs.get(2).getValue().asDouble().getValue();
+                double vel = 1;
+                double velL = 1;
+                double velR = 1;
+                CommandMove moveCmd = new CommandMove();
+                moveCmd.setX((float) x);
+                moveCmd.setY((float) y);
+                moveCmd.setLinearVelocity((float) vel);
+                moveCmd.setLeftVelocity((float) velL);
+                moveCmd.setRightVelocity((float) velR);
+                Command command = new Command(Command.CommandType.MOVE);
+                command.setCommandArgument(moveCmd);
+                commandList.add(command);
+            }
+        }
+
+        return commandList;
     }
 
     /**
@@ -652,7 +702,21 @@ public class SoarBridge {
                             break;
                         case TIE:
                             tieOccurred = true;
+
+                            break;
+                        case PLAN:
+                            command = new Command(Command.CommandType.PLAN);
+                            CommandPlan commandPlan = (CommandPlan) command.getCommandArgument();
+                            if (commandPlan != null) {
+                                List<Command> step = GetParameterValuePlan("PLAN");
+                                Collections.reverse(step);
+                                commandList.add(step.get(0));
+                            }
+
+                            break;
                         default:
+                            System.out.println("");
+
                             break;
                     }
                 }
@@ -661,7 +725,10 @@ public class SoarBridge {
             logger.severe("Error while processing commands");
             e.printStackTrace();
         }
-
+        int size = commandList.size();
+        if(size>0){
+            tieOccurred = false;
+        }
         return ((commandList.size() > 0) ? commandList : null);
     }
 
@@ -723,7 +790,7 @@ public class SoarBridge {
 
     private void processCommands(List<Command> commandList) throws CommandExecException {
 
-        if(tieOccurred){
+        if (tieOccurred) {
             return;
         }
         if (commandList != null) {

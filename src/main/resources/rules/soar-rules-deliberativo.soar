@@ -855,9 +855,9 @@ sp {halt*condition
 
 sp {plan-build
 	(state <s> ^io.output-link <OL>
-			 -^plan <P>)
+			 -^PLAN <P>)
 -->
-	(<OL> ^plan <P>)
+	(<OL> ^PLAN <P>)
 	(<P> ^step 0)
 }
 
@@ -945,7 +945,7 @@ sp {apply*move*jewel*deliberativo
                ^POSITION <pos>)
    (<memory> ^ENTITY <entityInMemory>)
    (<entityInMemory> ^NAME <entityInMemoryName>)
-   (<ol> ^plan <P>)
+   (<ol> ^PLAN <P>)
    (<P> ^step <V>)
    (<creature> ^SENSOR.VISUAL.ENTITY <entity>)
    (<entity> ^TYPE JEWEL)
@@ -1015,7 +1015,7 @@ sp {apply*get*jewel*deliberativo
     (<o> ^name getJewelInPlanning)
     (<s> ^superstate <ss>)
     (<ss> ^io.output-link <ol>)
-    (<ol> ^plan <P>)
+    (<ol> ^PLAN <P>)
     (<P> ^step <V>)
     (<o> ^parameter <param>)
     (<param> ^COLOR <jewelColor>)
@@ -1028,12 +1028,12 @@ sp {apply*get*jewel*deliberativo
     (<sensor> ^VISUAL <visual>)
     (<visual> ^ENTITY <entityToRemove>)
     (<entityToRemove> ^NAME <jewelName>)
+    (<entity> ^REQUIRED <= 1)
 -->
     (write | Apply GET deliberado |)
     (write |Apply GET deliberado — apagando ENTITY com nome: | <jewelName> | \n|)
     (<visual> ^ENTITY <entityToRemove> -)
-    (<entity> ^REQUIRED <req> -)                 
-    (<entity> ^REQUIRED (- <req> 1))
+    (<lf> ^ENTITY <entity> -)                 
     (<P> ^step <new-step>)
     (<new-step> ^Command GET
                 ^Name <jewelName>)
@@ -1042,4 +1042,22 @@ sp {apply*get*jewel*deliberativo
 
 
 
- 
+sp {propose*exit*deliberation
+   (state <s> ^name resolve-tie
+              ^CREATURE <creature>)
+   (<creature> ^LEAFLETS <leaflet>)
+   - (<leaflet> ^ENTITY <entity>) 
+-->
+   (write |Todos os REQUIRED chegaram a zero (propose)!|)
+   (<s> ^operator <o> +)
+   (<o> ^name exit-deliberation)
+}
+
+sp {apply*exit*deliberation
+   (state <s> ^name resolve-tie
+              ^operator <o>)
+   (<o> ^name exit-deliberation)
+-->
+   (write |Saindo da deliberação, colocando ^result fim!|)
+   (<s> ^result fim)
+}

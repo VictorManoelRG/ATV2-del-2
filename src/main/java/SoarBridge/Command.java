@@ -16,6 +16,7 @@ public class Command {
         EAT,
         TIE,
         DELIVER,
+        PLAN,
         
     }
 
@@ -48,7 +49,11 @@ public class Command {
             case TIE:
                 commandArgument = new CommandTie();
                 break;
-
+  
+                
+            case PLAN:
+                commandArgument = new CommandPlan();
+                break;
             default:
                 commandArgument = null;
                 break;
