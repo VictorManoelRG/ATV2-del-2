@@ -263,8 +263,10 @@ public class SoarBridge {
                         CreateStringWME(entity, "TYPE", "JEWEL");
                         CreateStringWME(entity, "NAME", t.getName());
                         CreateStringWME(entity, "COLOR", t.getAttributes().getColor());
-                        putRequiredJewelsForLeaflet();
+                        
                     }
+                    //AQUI
+                    putRequiredJewelsForLeaflet();
                     System.out.println("joias a coletar: " + jewelsToCollect);
                 } else {
                     if (seekingBestJewels && jewelsToCollect.isEmpty()) {
@@ -318,6 +320,10 @@ public class SoarBridge {
     private void putRequiredJewelsForLeaflet() {
         var item = (Map<String, Integer>) chosenLeaflet.getWhatToCollect();
         for (var entry : item.entrySet()) {
+            //AQUI
+            if(entry.getValue()==0){
+                continue;
+            }
             Identifier entity = CreateIdWME(creatureLeaflets, "ENTITY");
             CreateStringWME(entity, "COLOR", entry.getKey());
             CreateFloatWME(entity, "REQUIRED", entry.getValue());

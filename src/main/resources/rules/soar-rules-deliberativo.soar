@@ -1033,6 +1033,38 @@ sp {apply*get*jewel*deliberativo
                 ^Name <jewelName>)
 }
 
+sp {apply*get*jewel*count*greater*deliberativo
+    (state <s> ^name resolve-tie
+               ^operator <o>
+               ^CREATURE <creature>)
+    (<o> ^name getJewelInPlanning)
+    (<s> ^superstate <ss>)
+    (<ss> ^io.output-link <ol>)
+    (<ol> ^PLAN <P>)
+    (<P> ^step <V>)
+    (<o> ^parameter <param>)
+    (<param> ^COLOR <jewelColor>)
+    (<creature> ^LEAFLETS <lf>)
+    (<lf> ^ENTITY <entity>)
+    (<entity> ^COLOR <jewelColor>)
+    (<entity> ^REQUIRED <req>)
+    (<param> ^NAME <jewelName>)
+    (<creature> ^SENSOR <sensor>)
+    (<sensor> ^VISUAL <visual>)
+    (<visual> ^ENTITY <entityToRemove>)
+    (<entityToRemove> ^NAME <jewelName>)
+    (<entity> ^REQUIRED > 1)
+-->
+    (write | Apply GET deliberado |)
+    (write |Apply GET deliberado — apagando ENTITY com nome: | <jewelName> | \n|)
+    (<visual> ^ENTITY <entityToRemove> -)
+    (<entity> ^REQUIRED <req> -)                 
+    (<entity> ^REQUIRED (- <req> 1))                
+    (<P> ^step <new-step>)
+    (<new-step> ^Command GET
+                ^Name <jewelName>)
+}
+
 
 
 
