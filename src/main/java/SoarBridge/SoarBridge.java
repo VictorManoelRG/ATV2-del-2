@@ -769,10 +769,11 @@ public class SoarBridge {
                                 List<Command> step = GetParameterValuePlan("PLAN");
                                 Collections.reverse(step);
                                 String plano = "";
-                                for (var item : step) {
-                                    commandList.add(item);
-                                    plano += item.getCommandType().toString() + " ";
-                                }
+//                                for (var item : step) {
+//                                    commandList.add(item);
+//                                    plano += item.getCommandType().toString() + " ";
+//                                }
+                                    commandList.add(step.get(0));
                                 
                                 System.out.println("plano traçado: " + plano);
 //                                if(!step.isEmpty()){
