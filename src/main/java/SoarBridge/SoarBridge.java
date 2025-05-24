@@ -395,6 +395,8 @@ public class SoarBridge {
         if (knownJewels == null || knownJewels.isEmpty() || c == null || c.getLeaflets() == null) {
             return false;
         }
+        
+        ensureUpdateJewels();
 
         Map<String, List<Thing>> jewelsByColor = new HashMap<>();
         for (Thing jewel : knownJewels) {
@@ -683,6 +685,17 @@ public class SoarBridge {
                 List<Wme> Commands = Wmes.matcher(agent).filter(agent.getInputOutput().getOutputLink());
 
                 willProcessPlan = false;
+                
+                if(Commands.isEmpty()){
+                   c=c.updateState();
+                    List<Thing> thingsList = (List<Thing>) c.getThingsInVision();
+                  if(thingsList.size()==1){
+                        if(thingsList.get(0).getCategory()==Constants.categoryBRICK){
+                          CommandUtility.sendSetAngle("0", 2, -2, 2);
+                            Thread.sleep(200);
+                       }
+                    }
+               }
 
                 for (Wme com : Commands) {
                     String name = com.getAttribute().asString().getValue();
@@ -789,7 +802,9 @@ public class SoarBridge {
 
                             break;
                         default:
-                            System.out.println("");
+                            System.out.println("aaaaaa");
+                            CommandUtility.sendSetAngle("0", 2, -2, 2);
+                            Thread.sleep(200);
 
                             break;
                     }
@@ -916,23 +931,38 @@ public class SoarBridge {
 
     private void waitUntilCloseEnough(float targetX, float targetY) {
         while (true) {
-            c = c.updateState();
-            double currentX = c.getPosition().getX();
-            double currentY = c.getPosition().getY();
-
-            // Calcula a distância até o alvo
-            double distance = getDistanceToJewel(targetX, targetY, currentX, currentY);
-
-            if (distance <= 30.0) {
-                break; // Sai do loop se estiver perto o suficiente
-            }
-
-            try {
-                Thread.sleep(100); // Espera 100 ms antes de checar de novo
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
+//            // try {
+            //     var entities =  World.getWorldEntities();
+            //     boolean found = false;
+            //     for(var entity : entities){
+            //         if(entity.containsPoint(targetX, targetY)){
+            //             found=true;
+            //         }
+            //     }
+                
+            //     if(!found){
+            //         return;
+            //     }
+                c = c.updateState();
+                double currentX = c.getPosition().getX();
+                double currentY = c.getPosition().getY();
+                
+                // Calcula a distância até o alvo
+                double distance = getDistanceToJewel(targetX, targetY, currentX, currentY);
+                
+                if (distance <= 30.0) {
+                    break; // Sai do loop se estiver perto o suficiente
+                }
+                
+                try {
+                    Thread.sleep(100); // Espera 100 ms antes de checar de novo
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            // } catch (CommandExecException ex) {
+            //     System.getLogger(SoarBridge.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+            // }
         }
     }
 
