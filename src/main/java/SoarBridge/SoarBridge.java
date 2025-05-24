@@ -249,6 +249,7 @@ public class SoarBridge {
                 updateJewelList(thingsList);
 
                 canCompleteLeaflet = canCompleteBestLeafletWithKnownJewels() && !leafletCompleted;
+                ensureUpdateJewels();
                 CreateStringWME(creatureMemory, "CANCOMPLETE", canCompleteLeaflet ? "YES" : "NO");
 
                 if (canCompleteLeaflet) {
@@ -263,7 +264,7 @@ public class SoarBridge {
                         CreateStringWME(entity, "TYPE", "JEWEL");
                         CreateStringWME(entity, "NAME", t.getName());
                         CreateStringWME(entity, "COLOR", t.getAttributes().getColor());
-                        
+
                     }
                     //AQUI
                     putRequiredJewelsForLeaflet();
@@ -321,7 +322,7 @@ public class SoarBridge {
         var item = (Map<String, Integer>) chosenLeaflet.getWhatToCollect();
         for (var entry : item.entrySet()) {
             //AQUI
-            if(entry.getValue()==0){
+            if (entry.getValue() == 0) {
                 continue;
             }
             Identifier entity = CreateIdWME(creatureLeaflets, "ENTITY");
@@ -773,8 +774,10 @@ public class SoarBridge {
 //                                    commandList.add(item);
 //                                    plano += item.getCommandType().toString() + " ";
 //                                }
+                                if (step.size() > 0) {
                                     commandList.add(step.get(0));
-                                
+                                }
+
                                 System.out.println("plano traçado: " + plano);
 //                                if(!step.isEmpty()){
 //                                    commandList.add(step.get(0));
@@ -866,7 +869,9 @@ public class SoarBridge {
         }
         if (commandList != null) {
             for (Command command : commandList) {
+                System.out.println("comando: " + command.getCommandType().name());
                 switch (command.getCommandType()) {
+
                     case MOVE:
                         processMoveCommand((CommandMove) command.getCommandArgument());
                         break;
@@ -943,7 +948,7 @@ public class SoarBridge {
             var leaflets = c.getLeaflets();
 
             String color = null;
-            for (Thing jewel : c.getThingsInVision()) {
+            for (Thing jewel : World.getWorldEntities()) {
                 if (jewel.getName().equals(soarCommandGet.getThingName())) {
                     color = jewel.getAttributes().getColor();
                     break;
@@ -1184,6 +1189,55 @@ public class SoarBridge {
 
     public Set<Wme> getWorkingMemory() {
         return (agent.getAllWmesInRete());
+    }
+
+    private void ensureUpdateJewels() {
+        try {
+            List<Thing> existingThings = World.getWorldEntities();
+
+            for (int i = 0; i < jewelsToCollect.size(); i++) {
+                boolean notFound = true;
+                for (Thing thing : existingThings) {
+                    if (jewelsToCollect.get(i).getName().equals(thing.getName())) {
+                        notFound = false;
+                    }
+
+                }
+                if (notFound) {
+                    jewelsToCollect.remove(i);
+                }
+            }
+
+            for (int i = 0; i < knownJewels.size(); i++) {
+                boolean notFound = true;
+                for (Thing thing : existingThings) {
+                    if (knownJewels.get(i).getName().equals(thing.getName())) {
+                        notFound = false;
+                    }
+
+                }
+                if (notFound) {
+                    knownJewels.remove(i);
+                }
+            }
+
+            for (int i = 0; i < knownFoods.size(); i++) {
+                boolean notFound = true;
+                for (Thing thing : existingThings) {
+                    if (knownFoods.get(i).getName().equals(thing.getName())) {
+                        notFound = false;
+                    }
+
+                }
+                if (notFound) {
+                    knownFoods.remove(i);
+                }
+            }
+
+        } catch (CommandExecException ex) {
+            System.getLogger(SoarBridge.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+        }
+//
     }
 
 }
