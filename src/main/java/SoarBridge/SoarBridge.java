@@ -884,28 +884,40 @@ public class SoarBridge {
         }
         if (commandList != null) {
             for (Command command : commandList) {
-                System.out.println("comando: " + command.getCommandType().name());
-                switch (command.getCommandType()) {
-
-                    case MOVE:
-                        processMoveCommand((CommandMove) command.getCommandArgument());
-                        break;
-
-                    case GET:
-                        processGetCommand((CommandGet) command.getCommandArgument());
-                        break;
-
-                    case EAT:
-                        processEatCommand((CommandEat) command.getCommandArgument());
-                        break;
-                    case DELIVER:
-                        processDeliverCommand((CommandDeliver) command.getCommandArgument());
-
-                    default:
-                        break;
+                try {
+                    System.out.println("comando: " + command.getCommandType().name());
+                    switch (command.getCommandType()) {
+                        
+                        case MOVE:
+                            processMoveCommand((CommandMove) command.getCommandArgument());
+                            break;
+                            
+                        case GET:
+                            processGetCommand((CommandGet) command.getCommandArgument());
+                            break;
+                            
+                        case EAT:
+                            processEatCommand((CommandEat) command.getCommandArgument());
+                            break;
+                        case DELIVER:
+                            processDeliverCommand((CommandDeliver) command.getCommandArgument());
+                            
+                        default:
+                            CommandUtility.sendSetAngle("0", 2, -2, 2);
+                            Thread.sleep(200);
+                            break;
+                    }
+                } catch (InterruptedException ex) {
+                    System.getLogger(SoarBridge.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
                 }
             }
         } else {
+            try {
+                CommandUtility.sendSetAngle("0", 2, -2, 2);
+                Thread.sleep(200);
+            } catch (InterruptedException ex) {
+                System.getLogger(SoarBridge.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+            }
         }
     }
 
